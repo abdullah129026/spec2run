@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: spec2run-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    healthCheckPath: /health
+    envVars:
+      - key: SPEC2RUN_GROQ_API_KEY
+        sync: false
+      - key: SPEC2RUN_CORS_ORIGINS
+        value: https://spec2run.fluxyai.codes

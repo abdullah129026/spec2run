@@ -1,0 +1,5 @@
+{"id": "bookstore", "prompt": "Create an API for a bookstore with books, authors, and orders. Books have title and price. I need JWT auth.", "expect": {"entities": ["books", "authors", "orders"], "auth": true}}
+{"id": "todo", "prompt": "A todo API with lists and items. Items have a title and a done flag.", "expect": {"entities": ["lists", "items"], "auth": false}}
+{"id": "blog", "prompt": "A blog API with posts and comments. Posts have title, body, and tags.", "expect": {"entities": ["posts", "comments"], "auth": false}}
+{"id": "vague", "prompt": "Make me an API for my shop.", "expect": {"needs_clarification": true}}
+{"id": "gym", "prompt": "Gym management API: members, trainers, and classes. Members have name and membership type. Trainers teach classes.", "expect": {"entities": ["members", "trainers", "classes"], "auth": false}}

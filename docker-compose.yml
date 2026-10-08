@@ -1,0 +1,7 @@
+services:
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      SPEC2RUN_GROQ_API_KEY: ${SPEC2RUN_GROQ_API_KEY:-}
