@@ -7,10 +7,14 @@ per sandbox, and real users — not just features.
 
 ## Week 1 — Spec engine (Days 1–7)
 
-- [ ] Groq LLM client (JSON mode) + config wiring
-- [ ] Prompt → OpenAPI 3.0 generator (system prompt forces valid JSON only)
-- [ ] OpenAPI structural validator (paths, schemas, refs)
-- [ ] Vague-prompt guardrail (clarifying questions, never guesses)
+- [x] Groq LLM client (JSON mode) + config wiring (`backend/app/services/llm.py`;
+      `SPEC2RUN_GROQ_API_KEY`, `SPEC2RUN_MODEL` default `openai/gpt-oss-120b`)
+- [x] Prompt → OpenAPI 3.0 generator (system prompt forces valid JSON only;
+      `backend/app/services/specgen.py`, endpoint `POST /specs/generate`)
+- [x] OpenAPI structural validator (paths, schemas, refs;
+      `backend/app/services/validate.py`; invalid drafts rejected, never rendered)
+- [x] Vague-prompt guardrail (clarifying questions, never guesses; model returns
+      `needs_clarification` shape, answered via `POST /specs/refine`)
 - [ ] **OpenAPI import** — paste a Swagger URL or file, get an editable project
       (no LLM involved; second demo path that can't fail on model quality)
 - [ ] Prompt Studio UI (textarea, option buttons, example prompts)
