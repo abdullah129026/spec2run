@@ -1,8 +1,10 @@
-from typing import Literal
+from typing import Literal, Optional
 
+import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.services.importer import import_openapi
 from app.services.specgen import prompt_to_spec
 
 router = APIRouter(prefix="/specs", tags=["specs"])
@@ -43,10 +45,23 @@ def generate_spec(req: GenerateRequest):
                              "language": req.language})
 
 
+class ImportRequest(BaseModel):
+    url: Optional[str] = Field(default=None, max_length=2048)
+    content: Optional[str] = Field(default=None, max_length=2 * 1024 * 1024)
+
+
 @router.post("/import")
-def import_spec(payload: dict):
-    """Import an existing OpenAPI document from a URL or pasted JSON/YAML."""
-    raise HTTPException(status_code=501, detail="spec import not implemented yet")
+def import_spec(req: ImportRequest):
+    """Import an existing OpenAPI document from a URL or pasted JSON/YAML.
+
+    No LLM involved. Public http(s) URLs only; documents must validate
+    as usable OpenAPI 3.0."""
+    try:
+        return import_openapi(url=req.url, content=req.content)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"fetch failed: {e}")
 
 
 @router.post("/refine")
