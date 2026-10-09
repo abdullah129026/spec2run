@@ -1,3 +1,128 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ---- swagger-ui dark reskin: zinc + mono + one indigo accent, no green ---- */
+.spec2run-swagger .swagger-ui {
+  font-family: inherit;
+  color: #d4d4d8;
+  background: #09090b;
+}
+.spec2run-swagger .swagger-ui .info .title,
+.spec2run-swagger .swagger-ui .info hgroup.main a,
+.spec2run-swagger .swagger-ui h1,
+.spec2run-swagger .swagger-ui h2,
+.spec2run-swagger .swagger-ui h3,
+.spec2run-swagger .swagger-ui h4,
+.spec2run-swagger .swagger-ui .model-title {
+  color: #f4f4f5;
+}
+.spec2run-swagger .swagger-ui .info,
+.spec2run-swagger .swagger-ui .scheme-container,
+.spec2run-swagger .swagger-ui section.models,
+.spec2run-swagger .swagger-ui .opblock .opblock-section-header,
+.spec2run-swagger .swagger-ui table thead tr th,
+.spec2run-swagger .swagger-ui .model-box {
+  background: #101013;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+.spec2run-swagger .swagger-ui .opblock {
+  background: #101013;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+/* stock swagger-ui colors method blocks with equal-specificity selectors,
+   so these are scoped one level deeper to win */
+.spec2run-swagger .swagger-ui .opblock.opblock-get,
+.spec2run-swagger .swagger-ui .opblock.opblock-post,
+.spec2run-swagger .swagger-ui .opblock.opblock-put,
+.spec2run-swagger .swagger-ui .opblock.opblock-delete,
+.spec2run-swagger .swagger-ui .opblock.opblock-patch,
+.spec2run-swagger .swagger-ui .opblock.opblock-head,
+.spec2run-swagger .swagger-ui .opblock.opblock-options,
+.spec2run-swagger .swagger-ui .opblock.opblock-trace {
+  background: #101013;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+.spec2run-swagger .swagger-ui .opblock.opblock-get .opblock-summary-method,
+.spec2run-swagger .swagger-ui .opblock.opblock-post .opblock-summary-method,
+.spec2run-swagger .swagger-ui .opblock.opblock-put .opblock-summary-method,
+.spec2run-swagger .swagger-ui .opblock.opblock-delete .opblock-summary-method,
+.spec2run-swagger .swagger-ui .opblock.opblock-patch .opblock-summary-method,
+.spec2run-swagger .swagger-ui .opblock.opblock-head .opblock-summary-method,
+.spec2run-swagger .swagger-ui .opblock.opblock-options .opblock-summary-method,
+.spec2run-swagger .swagger-ui .opblock.opblock-trace .opblock-summary-method {
+  background: #5e6ad2;
+  border-color: #5e6ad2;
+  color: #fff;
+  text-shadow: none;
+}
+.spec2run-swagger .swagger-ui .opblock .opblock-summary {
+  border-color: transparent;
+}
+.spec2run-swagger .swagger-ui .info .title small.version-stamp {
+  background-color: #27272a;
+  color: #a1a1aa;
+}
+.spec2run-swagger .swagger-ui .opblock .opblock-summary-path {
+  font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
+  font-size: 12px;
+  color: #e4e4e7;
+}
+.spec2run-swagger .swagger-ui .opblock .opblock-summary-method {
+  background: #5e6ad2;
+  color: #fff;
+}
+.spec2run-swagger .swagger-ui .opblock .opblock-summary-description {
+  color: #a1a1aa;
+}
+.spec2run-swagger .swagger-ui .opblock-description-wrapper p,
+.spec2run-swagger .swagger-ui .opblock-body .opblock-description-wrapper p,
+.spec2run-swagger .swagger-ui .parameter__name,
+.spec2run-swagger .swagger-ui .parameter__type,
+.spec2run-swagger .swagger-ui .response-col_status,
+.spec2run-swagger .swagger-ui .prop-type,
+.spec2run-swagger .swagger-ui .model {
+  color: #d4d4d8;
+}
+.spec2run-swagger .swagger-ui .btn.try-out__btn,
+.spec2run-swagger .swagger-ui .btn.authorize,
+.spec2run-swagger .swagger-ui .btn.execute {
+  background: #5e6ad2;
+  border-color: #5e6ad2;
+  color: #fff;
+}
+.spec2run-swagger .swagger-ui .btn.try-out__btn.cancel {
+  background: transparent;
+  border-color: #71717a;
+  color: #a1a1aa;
+}
+.spec2run-swagger .swagger-ui input[type="text"],
+.spec2run-swagger .swagger-ui input[type="password"],
+.spec2run-swagger .swagger-ui textarea,
+.spec2run-swagger .swagger-ui select {
+  background: #18181b;
+  border-color: rgba(255, 255, 255, 0.07);
+  color: #e4e4e7;
+  font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
+  font-size: 12px;
+}
+.spec2run-swagger .swagger-ui .opblock-body .responses-table,
+.spec2run-swagger .swagger-ui table.parameters,
+.spec2run-swagger .swagger-ui .model-box-control {
+  background: transparent;
+}
+.spec2run-swagger .swagger-ui .dialog-ux .modal-ux {
+  background: #101013;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.spec2run-swagger .swagger-ui .dialog-ux .modal-ux-header h3,
+.spec2run-swagger .swagger-ui .auth-container h4 {
+  color: #f4f4f5;
+}
+.spec2run-swagger .swagger-ui .opblock-tag,
+.spec2run-swagger .swagger-ui .expand-operation {
+  color: #a1a1aa;
+}
+.spec2run-swagger .swagger-ui a {
+  color: #a5b4fc;
+}
