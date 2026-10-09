@@ -15,10 +15,16 @@ per sandbox, and real users — not just features.
       `backend/app/services/validate.py`; invalid drafts rejected, never rendered)
 - [x] Vague-prompt guardrail (clarifying questions, never guesses; model returns
       `needs_clarification` shape, answered via `POST /specs/refine`)
-- [ ] **OpenAPI import** — paste a Swagger URL or file, get an editable project
-      (no LLM involved; second demo path that can't fail on model quality)
-- [ ] Prompt Studio UI (textarea, option buttons, example prompts)
-- [ ] Swagger preview tab (swagger-ui-react rendered from the spec)
+- [x] **OpenAPI import** — paste a Swagger URL or file, get an editable project
+      (no LLM involved; `POST /specs/import` with SSRF guard + 2 MB bound,
+      validated through the same validator the LLM drafts face;
+      `backend/app/services/importer.py`, 11 tests)
+- [x] Prompt Studio UI (textarea, JWT-auth toggle, example prompts, wired to
+      `/specs/generate` + `/specs/refine` with clarification flow, loading
+      skeletons, error states, import dialog; `frontend/components/`)
+- [x] Swagger preview tab (swagger-ui-react reskinned dark: zinc surfaces,
+      mono paths, indigo method badges and buttons; empty/loading/error
+      states per the design brief)
 
 ## Week 2 — Code generation (Days 8–14)
 
