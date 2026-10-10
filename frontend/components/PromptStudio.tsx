@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Mic, Upload } from "lucide-react";
+import { Check, Upload } from "lucide-react";
 import { generateSpec, refineSpec } from "@/lib/api";
 import { useSpec2RunStore } from "@/lib/store";
 import ImportDialog from "./ImportDialog";
@@ -90,7 +90,7 @@ export default function PromptStudio() {
         <div>
           <h1 className="text-lg font-semibold">Spec2Run</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Describe the API you want, or press the mic and say it.
+            Describe the API you want in plain English.
           </p>
         </div>
         <span
@@ -101,16 +101,6 @@ export default function PromptStudio() {
           sandbox offline
         </span>
       </div>
-
-      <button
-        type="button"
-        disabled
-        title="Voice input arrives in the week-3 slice"
-        className="flex cursor-not-allowed items-center justify-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-600"
-      >
-        <Mic size={16} />
-        Voice input — week 3
-      </button>
 
       <textarea
         value={prompt}

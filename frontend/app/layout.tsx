@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Spec2Run — Talk your API into existence",
-  description: "Speak in English, get a live deployed microservice.",
+  title: "Spec2Run — Type your API into existence",
+  description: "Describe it in plain English, get a live deployed microservice.",
 };
 
 export default function RootLayout({
