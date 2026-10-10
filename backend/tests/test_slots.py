@@ -51,8 +51,10 @@ def test_entities_extracted():
 def test_field_types_mapped():
     book = {e["name"]: e for e in slots.slots_from_spec(BOOKSTORE)["entities"]}["Book"]
     cols = {f["name"]: f for f in book["fields"]}
-    assert cols["title"] == {"name": "title", "py": "str", "col": "String",
-                             "required": True, "fk": None}
+    assert cols["title"]["py"] == "str" and cols["title"]["col"] == "String"
+    assert cols["title"]["required"] is True and cols["title"]["fk"] is None
+    assert cols["title"]["annotation"] == "str"
+    assert cols["pages"]["annotation"] == "Optional[int] = None"
     assert cols["pages"]["col"] == "Integer" and cols["pages"]["py"] == "int"
     assert cols["price"]["col"] == "Float"
     assert cols["in_print"]["col"] == "Boolean"

@@ -72,11 +72,14 @@ def _field(name: str, prop: dict, required: set[str], plurals: dict[str, str]) -
         target = _class_name(name[:-3])
         if target in plurals:
             fk = plurals[target]
+    py = PY_TYPES[col]
+    req = name in required or name == "id"
     return {
         "name": name,
-        "py": PY_TYPES[col],
+        "py": py,
+        "annotation": py if req else f"Optional[{py}] = None",
         "col": col,
-        "required": name in required or name == "id",
+        "required": req,
         "fk": fk,
     }
 
