@@ -1,15 +1,15 @@
-# Spec2Run — Voice to Microservice
+# Spec2Run — Prompt to Microservice
 
-**"Talk your API into existence. Speak in English, get a live deployed microservice."**
+**"Type your API into existence. Describe it in plain English, get a live deployed microservice."**
 
-Describe an API in plain English (or say it out loud) and Spec2Run generates a
+Describe an API in plain English and Spec2Run generates a
 validated OpenAPI 3.0 spec, renders runnable service code from templates, and
 boots it in a live sandbox — real Postgres included — you can call immediately.
 Or paste an existing Swagger URL and get an editable, runnable clone.
 
 ## How it works
 
-1. **Prompt** — type or speak what you want ("a bookstore API with books,
+1. **Prompt** — type what you want ("a bookstore API with books,
    authors, and orders; books have title and price; JWT auth").
    Or **import** an existing OpenAPI document by URL.
 2. **Spec** — an LLM drafts OpenAPI 3.0 JSON under a strict schema; vague
@@ -43,7 +43,7 @@ flow) and writes the results to `docs/EVAL.md`, failures included.
 |----------|------|
 | Frontend | Next.js 14, Tailwind, Monaco Editor, swagger-ui-react |
 | Backend  | FastAPI, Jinja2 |
-| AI       | Groq (spec generation), Web Speech API (voice input) |
+| AI       | Groq (spec generation) |
 | Data     | Neon Postgres (one branch per sandbox), SQLite fallback |
 | Deploy   | Vercel (frontend), Render (backend) — $0 |
 

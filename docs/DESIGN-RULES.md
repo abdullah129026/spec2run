@@ -13,10 +13,9 @@
 7. Stock unthemed Swagger UI. It must be reskinned dark (zinc + mono + indigo) or it ships looking grafted-on.
 8. Raw log dumps. Logs are staged, timestamped, collapsible groups (Vercel-style) or they don't ship.
 9. Blank panels. Every tab has an actionable empty state (clickable example prompt, import link).
-10. Mic button with no live transcript feedback. Interim results stream into the prompt box or the button doesn't ship.
-11. More than one accent color in the UI chrome. (Semantic red/amber/green are status, not accents.)
-12. Hover-only controls. Everything must work on touch and on a projector.
-13. Lorem ipsum / placeholder-looking sample content in the real UI.
+10. More than one accent color in the UI chrome. (Semantic red/amber/green are status, not accents.)
+11. Hover-only controls. Everything must work on touch and on a projector.
+12. Lorem ipsum / placeholder-looking sample content in the real UI.
 
 ## The short version
 

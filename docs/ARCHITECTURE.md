@@ -3,13 +3,14 @@
 ## Pipeline
 
 ```
-[Voice / text prompt] ─┬─→ [STT] → [LLM → OpenAPI 3.0 JSON] ─┐
-                       │                                      ├→ [Validator] → [Template + LLM codegen]
-[OpenAPI URL / file] ──┴→ [Importer → OpenAPI 3.0 JSON] ─────┘         │
-                                                                       ↓
-                                                              [Sandbox runner (Neon Postgres)]
-                                                                       ↓
-                                                              [Live URL + Swagger UI]
+[Text prompt] ──→ [LLM → OpenAPI 3.0 JSON] ────────────┐
+                                                       ├─→ [Validator] → [Template + LLM codegen]
+[OpenAPI URL / file] ──→ [Importer → OpenAPI 3.0 JSON] ┘
+                                                       │
+                                                       ▼
+                                       [Sandbox runner (Neon Postgres)]
+                                                       ▼
+                                            [Live URL + Swagger UI]
 ```
 
 Two ways in: describe what you want (LLM drafts the spec), or paste an
@@ -17,10 +18,9 @@ existing Swagger URL (imported directly, no LLM involved).
 
 ## Modules
 
-**A. Voice-to-spec engine.** Mic input uses the Web Speech API (browser-native,
-free, no key). The prompt goes to Groq with JSON mode and a system prompt that
-forces output to be OpenAPI 3.0 and nothing else. Vague prompts return
-clarifying questions instead of a guess.
+**A. Prompt-to-spec engine.** The typed prompt goes to Groq with JSON mode and
+a system prompt that forces output to be OpenAPI 3.0 and nothing else. Vague
+prompts return clarifying questions instead of a guess.
 
 **B. Code generator (a core contribution).** The LLM never writes the service
 freehand. It fills typed slots (entities, fields, relations, auth scheme) and
@@ -58,8 +58,6 @@ failures with reasons. Runs on demand (not per push, to spare Groq quota).
   observable result (a live URL seconds after generation) for $0.
 - **Neon branching over provisioned Postgres.** One branch per sandbox, created
   and destroyed via API. Real Postgres semantics with zero idle cost.
-- **Web Speech over Whisper API.** Free, no key, no upload latency. Groq's
-  Whisper endpoint stays as a fallback for audio file uploads.
 - **Template + LLM hybrid over pure LLM codegen.** Deterministic structure,
   unit-testable templates, and the model can't hallucinate an import.
 - **Groq SDK**, same pattern as the PRISM backend (already proven).

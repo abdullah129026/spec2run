@@ -1,6 +1,6 @@
 # Spec2Run — 3-Week Build Roadmap
 
-Project: Spec2Run — Voice to Microservice. "Talk your API into existence."
+Project: Spec2Run — Prompt to Microservice. "Type your API into existence."
 Window: 2026-10-08 → 2026-10-29. Public repo, deployed, $0 stack.
 Bar: 9/10. That means measured evals, working auth, visible diffs, real Postgres
 per sandbox, and real users — not just features.
@@ -44,9 +44,8 @@ per sandbox, and real users — not just features.
 - [ ] Download ZIP
 - [ ] Push to GitHub (user supplies a token in the UI)
 
-## Week 3 — Voice, sandbox, eval, launch (Days 15–21)
+## Week 3 — Sandbox, eval, launch (Days 15–21)
 
-- [ ] Voice input (Web Speech API; Groq Whisper as fallback)
 - [ ] Live sandbox — supervised subprocess, proxied URL, TTL cleanup
 - [ ] **Neon Postgres per sandbox** — branch via API on boot, delete on expiry
       (SQLite fallback when `NEON_API_KEY` is unset)

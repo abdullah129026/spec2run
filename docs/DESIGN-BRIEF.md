@@ -1,5 +1,5 @@
 # Spec2Run — Frontend Design Brief
-**Project:** Spec2Run — Voice to Microservice (split-screen API studio)
+**Project:** Spec2Run — Prompt to Microservice (split-screen API studio)
 **Date:** 2026-10-07
 **Constraint from user:** 10/10 UX/UI. Must NOT look like generic "AI slop." Must feel like a professional developer tool an examiner can drive live on a projector.
 
@@ -40,7 +40,6 @@ Same discipline as PRISM's brief: near-monochrome + ONE accent, hairline borders
 ### What failed (and why)
 - **Unthemed Swagger embeds**: every dark-mode tool that ships stock Swagger looks unfinished. *Lesson: budget the CSS override pass; it's not optional polish.*
 - **Undifferentiated log walls**: without stage structure, users can't tell validating from deploying. *Lesson: the backend must emit staged events, not just lines.*
-- **Mic buttons with no transcript feedback**: press, silence, then a blob of text appears — feels broken. *Lesson: stream interim transcripts live into the prompt box, marked provisional.*
 
 ---
 
@@ -48,7 +47,7 @@ Same discipline as PRISM's brief: near-monochrome + ONE accent, hairline borders
 
 Full-viewport app; the page never scrolls, panels scroll internally.
 
-**Left — Prompt Studio (400–440px fixed):** product mark + sandbox status → mic button → prompt textarea (live transcript lands here) → option chips (Auth / Database / Language) → Generate button → example prompts → "or import an OpenAPI file/URL" link.
+**Left — Prompt Studio (400–440px fixed):** product mark + sandbox status → prompt textarea → option chips (Auth / Database / Language) → Generate button → example prompts → "or import an OpenAPI file/URL" link.
 
 **Right — generation workspace:** tab bar (Swagger | Code | Logs | Diff when a version exists). The tab bar's right side holds the session controls: sandbox status pill (building/live/expired), live URL chip + copy, Download ZIP, Push to GitHub.
 
@@ -80,15 +79,7 @@ A draggable divider between panels is a nice week-3 touch, not a requirement.
 
 ---
 
-## 5. The mic interaction, specified
-
-States: **idle** → **listening** (pulsing indigo ring, "Listening… 0:04") → **transcript streaming** (interim results appended live to the textarea in a provisional style, committed on final) → **done**.
-- Mic permission denied or browser unsupported → inline notice with "type instead". Never a dead button.
-- Click toggles; Esc stops. Interim text is visually distinct until committed.
-
----
-
-## 6. States for every async panel
+## 5. States for every async panel
 
 - **Empty**: actionable — clickable example prompt, import link. Never blank, never "No data yet."
 - **Loading**: skeleton blocks shaped like the eventual content, not a lone spinner.
@@ -98,29 +89,29 @@ States: **idle** → **listening** (pulsing indigo ring, "Listening… 0:04") �
 
 ---
 
-## 7. Motion
+## 6. Motion
 
-150ms hover, 200–300ms tab/panel transitions, ease-out cubic — never linear, never default ease. Log lines fade+rise in 120ms with reserved space (no layout shift). Mic ring pulses on a 1.6s loop. Respect `prefers-reduced-motion`.
+150ms hover, 200–300ms tab/panel transitions, ease-out cubic — never linear, never default ease. Log lines fade+rise in 120ms with reserved space (no layout shift). Respect `prefers-reduced-motion`.
 
 ---
 
-## 8. Type & color
+## 7. Type & color
 
 - UI: Inter (system stack fallback acceptable). Code/logs/URLs/hashes: JetBrains Mono.
 - Zinc ramp: canvas `#09090b`, surfaces `#101013` / `#18181b`, borders white at ~7%.
-- Accent indigo `#5E6AD2`: primary actions, active tab underline, selection, mic ring. Nothing else.
+- Accent indigo `#5E6AD2`: primary actions, active tab underline, selection. Nothing else.
 - Semantic colors are status only: emerald-500 success, red-500 error, amber-500 warning.
 
 ---
 
-## 9. Responsive & projector
+## 8. Responsive & projector
 
 - Below ~1100px the split collapses into switchable views (Studio | Output toggle), not a squished split.
 - Demo/projector: body text never below 13px. A week-3 "demo mode" toggle (larger base type, hides secondary chrome) is cheap and examiners notice.
 
 ---
 
-## 10. Checklist for every UI commit
+## 9. Checklist for every UI commit
 
 1. Does it look like Linear/Vercel shipped it? If it looks like a landing page, cut it.
 2. Every async panel has empty, loading, error, and (where relevant) streaming states.

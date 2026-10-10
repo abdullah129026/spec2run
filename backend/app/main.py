@@ -1,4 +1,4 @@
-"""Spec2Run backend — voice/text prompt to live microservice."""
+"""Spec2Run backend — prompt to live microservice."""
 import os
 
 from fastapi import FastAPI
