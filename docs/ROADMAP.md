@@ -28,11 +28,16 @@ per sandbox, and real users — not just features.
 
 ## Week 2 — Code generation (Days 8–14)
 
-- [ ] Jinja2 template engine + FastAPI/SQLAlchemy templates
-- [ ] Entity/field/relation slot filling from the spec
-- [ ] **Working JWT auth in the template** — register, login, protected routes
-      with real token verification (the thing every competitor fakes)
-- [ ] Generated code syntax check before showing it
+- [x] Jinja2 template engine + FastAPI/SQLAlchemy templates
+      (`render_service`, single-file `app.py` + requirements/README/.env;
+      `backend/app/services/codegen.py`, `backend/app/templates/fastapi/`)
+- [x] Entity/field/relation slot filling from the spec (typed fields,
+      `<entity>_id` FK detection; `backend/app/services/slots.py`, 11 tests)
+- [x] **Working JWT auth in the template** — register, login, protected routes
+      with real token verification (the thing every competitor fakes);
+      bcrypt hashes, env-or-random JWT secret, wired via `POST /generate/code`
+- [x] Generated code syntax check before showing it (`ast.parse` on every
+      rendered `.py`; template bugs raise, never ship)
 - [ ] Monaco editor tab (editable code)
 - [ ] **Spec + code diff view** — "add reviews to books" shows exactly what
       changed, git-style, in spec JSON and rendered files
