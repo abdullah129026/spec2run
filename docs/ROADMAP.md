@@ -38,11 +38,22 @@ per sandbox, and real users — not just features.
       bcrypt hashes, env-or-random JWT secret, wired via `POST /generate/code`
 - [x] Generated code syntax check before showing it (`ast.parse` on every
       rendered `.py`; template bugs raise, never ship)
-- [ ] Monaco editor tab (editable code)
-- [ ] **Spec + code diff view** — "add reviews to books" shows exactly what
-      changed, git-style, in spec JSON and rendered files
-- [ ] Download ZIP
-- [ ] Push to GitHub (user supplies a token in the UI)
+- [x] Monaco editor tab (editable code) — file tree + editor with zinc
+      theme, 13px JetBrains Mono, minimap off; edits are local with a
+      modified badge + reset; `frontend/components/CodeTab.tsx`
+- [x] **Spec + code diff view** — "add reviews to books" patches the spec via
+      `POST /specs/patch` (LLM edit mode, re-validated), and a Diff tab shows
+      the structured spec changes plus GitHub-PR-style unified diffs of the
+      rendered files (`POST /generate/diff`; `backend/app/services/diffing.py`,
+      `frontend/components/DiffTab.tsx`)
+- [x] Download ZIP — `POST /generate/zip` streams the rendered service;
+      button in the Code tab header
+- [x] Push to GitHub (user supplies a token in the UI) — `POST /generate/github`
+      creates the repo via the GitHub API and pushes the files in one commit
+      (commits on top of the default branch if the repo already exists);
+      token used for the request only, never stored or logged
+- [x] Spec versioning — every generate/patch/import appends a version; the
+      Diff tab compares any earlier version against the latest
 
 ## Week 3 — Sandbox, eval, launch (Days 15–21)
 
