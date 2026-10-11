@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Upload } from "lucide-react";
-import { generateSpec, refineSpec } from "@/lib/api";
+import { generateSpec, patchSpec, refineSpec } from "@/lib/api";
 import { useSpec2RunStore } from "@/lib/store";
 import ImportDialog from "./ImportDialog";
 
@@ -36,10 +36,28 @@ export default function PromptStudio() {
   const setAnswers = useSpec2RunStore((s) => s.setAnswers);
   const auth = useSpec2RunStore((s) => s.auth);
   const setAuth = useSpec2RunStore((s) => s.setAuth);
-  const setSpec = useSpec2RunStore((s) => s.setSpec);
+  const spec = useSpec2RunStore((s) => s.spec);
+  const addVersion = useSpec2RunStore((s) => s.addVersion);
+  const resetAll = useSpec2RunStore((s) => s.resetAll);
 
   const [importOpen, setImportOpen] = useState(false);
   const busy = status === "loading";
+  // A spec already exists: the textarea edits it ("add reviews to books").
+  const patchMode = spec !== null && status === "done";
+
+  function handleResult(res: Record<string, unknown>, label: string) {
+    if (res.needs_clarification) {
+      const qs = Array.isArray(res.questions)
+        ? res.questions.filter((q): q is string => typeof q === "string")
+        : [];
+      setQuestions(qs);
+      setStatus("idle");
+    } else {
+      setPrompt("");
+      addVersion(label, res);
+      setStatus("done");
+    }
+  }
 
   async function generate() {
     const text = prompt.trim();
@@ -48,20 +66,17 @@ export default function PromptStudio() {
     setError(null);
     setQuestions([]);
     try {
-      const res = await generateSpec(text, {
-        auth,
-        database: "postgres",
-        language: "python",
-      });
-      if (res.needs_clarification) {
-        const qs = Array.isArray(res.questions)
-          ? res.questions.filter((q): q is string => typeof q === "string")
-          : [];
-        setQuestions(qs);
-        setStatus("idle");
+      if (patchMode && spec) {
+        handleResult(await patchSpec(spec, text, auth), text);
       } else {
-        setSpec(res as Record<string, unknown>);
-        setStatus("done");
+        handleResult(
+          await generateSpec(text, {
+            auth,
+            database: "postgres",
+            language: "python",
+          }),
+          text,
+        );
       }
     } catch (e) {
       setError(friendlyError(e));
@@ -74,10 +89,21 @@ export default function PromptStudio() {
     setStatus("loading");
     setError(null);
     try {
-      const res = await refineSpec(prompt.trim(), questions, answers, auth);
+      let res: Record<string, unknown>;
+      if (patchMode && spec) {
+        const enriched =
+          prompt.trim() +
+          "\n\nThe user answered these clarifying questions:\n" +
+          questions
+            .map((q, i) => `- ${q.trim()}: ${(answers[i] ?? "").trim()}`)
+            .filter((line) => line.length > 4)
+            .join("\n");
+        res = await patchSpec(spec, enriched, auth);
+      } else {
+        res = await refineSpec(prompt.trim(), questions, answers, auth);
+      }
       setQuestions([]);
-      setSpec(res as Record<string, unknown>);
-      setStatus("done");
+      handleResult(res, prompt.trim());
     } catch (e) {
       setError(friendlyError(e));
       setStatus("error");
@@ -90,7 +116,9 @@ export default function PromptStudio() {
         <div>
           <h1 className="text-lg font-semibold">Spec2Run</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Describe the API you want in plain English.
+            {patchMode
+              ? "Describe a change to the current API."
+              : "Describe the API you want in plain English."}
           </p>
         </div>
         <span
@@ -111,7 +139,11 @@ export default function PromptStudio() {
             generate();
           }
         }}
-        placeholder="Create an API for a bookstore…"
+        placeholder={
+          patchMode
+            ? "Add reviews to books…"
+            : "Create an API for a bookstore…"
+        }
         rows={6}
         disabled={busy}
         aria-label="API description"
@@ -152,8 +184,18 @@ export default function PromptStudio() {
         disabled={!prompt.trim() || busy}
         className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {busy ? "Generating…" : "Generate API"}
+        {busy ? "Generating…" : patchMode ? "Update API" : "Generate API"}
       </button>
+
+      {patchMode && (
+        <button
+          type="button"
+          onClick={resetAll}
+          className="self-start text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-300"
+        >
+          Start a new API instead
+        </button>
+      )}
 
       {busy && (
         <div aria-hidden className="flex flex-col gap-2">

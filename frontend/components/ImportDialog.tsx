@@ -10,7 +10,7 @@ export default function ImportDialog({ onClose }: { onClose: () => void }) {
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const setSpec = useSpec2RunStore((s) => s.setSpec);
+  const addVersion = useSpec2RunStore((s) => s.addVersion);
   const setStatus = useSpec2RunStore((s) => s.setStatus);
   const inputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -36,7 +36,7 @@ export default function ImportDialog({ onClose }: { onClose: () => void }) {
       const spec = await importSpec(
         mode === "url" ? { url: trimmed } : { content: trimmed },
       );
-      setSpec(spec);
+      addVersion(mode === "url" ? `Imported from URL` : `Imported document`, spec);
       setStatus("done");
       onClose();
     } catch (e) {
