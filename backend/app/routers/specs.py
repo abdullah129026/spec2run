@@ -5,7 +5,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.services.importer import import_openapi
-from app.services.specgen import prompt_to_spec
+from app.services.specgen import patch_spec, prompt_to_spec
+from app.services.validate import validate_openapi
 
 router = APIRouter(prefix="/specs", tags=["specs"])
 
@@ -76,3 +77,29 @@ def refine_spec(req: RefineRequest):
     if clarifications:
         enriched += "\n\nThe user answered these clarifying questions:\n" + clarifications
     return _run(enriched, {"auth": req.auth})
+
+
+class PatchRequest(BaseModel):
+    spec: dict = Field(min_length=1)
+    prompt: str = Field(min_length=1, max_length=4000)
+    auth: bool = False
+
+
+@router.post("/patch")
+def patch_existing_spec(req: PatchRequest):
+    """Apply a natural-language change to an existing spec ("add reviews to books").
+
+    Returns the updated, re-validated spec — or the clarification payload when
+    the change is too vague to apply. The old spec must itself be valid."""
+    problems = validate_openapi(req.spec)
+    if problems:
+        raise HTTPException(
+            status_code=422,
+            detail="existing spec invalid: " + "; ".join(problems),
+        )
+    try:
+        return patch_spec(req.spec, req.prompt, {"auth": req.auth})
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))

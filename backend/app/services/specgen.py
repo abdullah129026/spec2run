@@ -1,5 +1,7 @@
 """Prompt -> OpenAPI 3.0. The LLM drafts; the validator decides."""
 
+import json
+
 from app.services import llm
 from app.services.validate import validate_openapi
 
@@ -52,6 +54,55 @@ def prompt_to_spec(prompt: str, options: dict | None = None) -> dict:
     """
     options = {k: v for k, v in (options or {}).items() if k in KNOWN_OPTIONS}
     doc = llm.complete_json(SYSTEM_PROMPT, _user_message(prompt, options))
+
+    if doc.get("needs_clarification"):
+        questions = [q for q in doc.get("questions", []) if isinstance(q, str)]
+        return {"needs_clarification": True, "questions": questions[:4]}
+
+    doc = _normalize(doc)
+    problems = validate_openapi(doc)
+    if problems:
+        raise ValueError("model produced invalid OpenAPI: " + "; ".join(problems))
+    return doc
+
+
+PATCH_SYSTEM_PROMPT = """\
+You are Spec2Run's spec editor. The user has an existing OpenAPI 3.0 document
+and wants it changed. Output ONLY the complete updated JSON document with the
+same top-level keys: openapi, info, paths, components.
+
+Rules:
+- Make the smallest edit that satisfies the request. Keep everything else
+  identical — same schemas, same endpoints, same field types.
+- "openapi" stays "3.0.0". $refs may only point at local schemas:
+  "#/components/schemas/<Name>". Every referenced schema must be defined
+  under "components.schemas".
+- Every operation needs a "responses" object.
+- Never invent auth schemes the user didn't ask for.
+
+If the request is too vague to apply (no discernible change), do NOT guess.
+Output exactly this shape instead:
+{"needs_clarification": true, "questions": ["...", "..."]}
+Two to four specific questions, never more than four.\
+"""
+
+
+def patch_spec(existing: dict, change: str, options: dict | None = None) -> dict:
+    """Apply a natural-language change to an existing spec ("add reviews to books").
+
+    Returns the updated spec, or {"needs_clarification": True, "questions":
+    [...]} when the request is too vague. Raises ValueError when the model
+    produces something unusable (never guess from a broken edit).
+    """
+    options = {k: v for k, v in (options or {}).items() if k in KNOWN_OPTIONS}
+    prefs = [f"{k}={options[k]}" for k in KNOWN_OPTIONS if k in options]
+    user_message = (
+        "Current spec:\n" + json.dumps(existing)
+        + "\n\nRequested change: " + change.strip()
+    )
+    if prefs:
+        user_message += "\nOptions: " + ", ".join(prefs)
+    doc = llm.complete_json(PATCH_SYSTEM_PROMPT, user_message)
 
     if doc.get("needs_clarification"):
         questions = [q for q in doc.get("questions", []) if isinstance(q, str)]
