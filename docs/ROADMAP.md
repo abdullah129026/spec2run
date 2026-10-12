@@ -57,12 +57,20 @@ per sandbox, and real users — not just features.
 
 ## Week 3 — Sandbox, eval, launch (Days 15–21)
 
-- [ ] Live sandbox — supervised subprocess, proxied URL, TTL cleanup
-- [ ] **Neon Postgres per sandbox** — branch via API on boot, delete on expiry
-      (SQLite fallback when `NEON_API_KEY` is unset)
-- [ ] **Eval harness** — 50-prompt corpus; spec → validate → render → boot →
+- [x] Live sandbox — supervised subprocess, proxied URL, TTL cleanup
+      (loopback-only child, scrubbed env, `/sandbox/up|{id}|{id}/proxy…|{id}/logs|{id}`,
+      sweeper reaps expired, pool cap evicts oldest; `backend/app/services/sandbox.py`,
+      `backend/app/routers/sandbox.py`, 20 tests)
+- [x] **Neon Postgres per sandbox** — branch via API on boot, delete on expiry
+      (SQLite fallback when `NEON_API_KEY` is unset; URI rewritten for the
+      psycopg dialect; `backend/app/services/neon.py`, 8 tests; generated
+      services now ship `psycopg[binary]`)
+- [x] **Eval harness** — 50-prompt corpus; spec → validate → render → boot →
       smoke-test (incl. auth flow); results to `docs/EVAL.md` with failures
-      listed honestly
+      listed honestly (`backend/eval/prompts.jsonl`, `backend/eval/fixtures/`,
+      `backend/app/services/eval.py`, `python -m app.services.eval`;
+      first run 2026-10-12: 6/6 fixture prompts pass end to end, 44 need the
+      LLM key — the full 50-prompt run happens on the deployed backend)
 - [ ] Deploy: Vercel frontend + Render backend (`NEON_API_KEY`,
       `SPEC2RUN_GROQ_API_KEY` in Render env)
 - [ ] **Real users** — post in hackathon/student Discords, watch 10 people
