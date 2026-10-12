@@ -147,7 +147,7 @@ export default function PromptStudio() {
         rows={6}
         disabled={busy}
         aria-label="API description"
-        className="rounded-md border border-zinc-800 bg-zinc-900 p-3 text-sm outline-none placeholder:text-zinc-600 focus:border-indigo-600 disabled:opacity-60"
+        className="w-full rounded-md border border-zinc-800 bg-zinc-900 p-3 text-sm outline-none placeholder:text-zinc-600 focus:border-indigo-600 disabled:opacity-60"
       />
 
       <div className="flex flex-wrap items-center gap-2">
