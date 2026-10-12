@@ -3,3 +3,48 @@
 {"id": "blog", "prompt": "A blog API with posts and comments. Posts have title, body, and tags.", "expect": {"entities": ["posts", "comments"], "auth": false}}
 {"id": "vague", "prompt": "Make me an API for my shop.", "expect": {"needs_clarification": true}}
 {"id": "gym", "prompt": "Gym management API: members, trainers, and classes. Members have name and membership type. Trainers teach classes.", "expect": {"entities": ["members", "trainers", "classes"], "auth": false}}
+{"id": "recipes", "prompt": "A recipe API with recipes and ingredients. Recipes have title, cook time, and difficulty.", "expect": {"entities": ["recipes", "ingredients"], "auth": false}}
+{"id": "notes", "prompt": "A notes API: notebooks and notes. Notes have title and body.", "expect": {"entities": ["notebooks", "notes"], "auth": false}}
+{"id": "bookmarks", "prompt": "Bookmark manager API with bookmarks. Each bookmark has a URL and tags. I need JWT auth.", "expect": {"entities": ["bookmarks"], "auth": true}}
+{"id": "inventory", "prompt": "Inventory API for a warehouse: products with SKU, quantity, and location; suppliers.", "expect": {"entities": ["products", "suppliers"], "auth": false}}
+{"id": "events", "prompt": "An events API: events with name, date, and venue; attendees can RSVP.", "expect": {"entities": ["events", "attendees"], "auth": false}}
+{"id": "movies", "prompt": "Movie catalog API: movies with title, year, and rating; directors.", "expect": {"entities": ["movies", "directors"], "auth": false}}
+{"id": "contacts", "prompt": "A contacts API with people. People have name, email, and phone. JWT auth required.", "expect": {"entities": ["people"], "auth": true}}
+{"id": "library", "prompt": "Library API: books, members, and loans. Loans link a book to a member.", "expect": {"entities": ["books", "members", "loans"], "auth": false}}
+{"id": "pets", "prompt": "Pet adoption API: pets with name, species, and age; shelters.", "expect": {"entities": ["pets", "shelters"], "auth": false}}
+{"id": "courses", "prompt": "Online course API: courses with title and price; lessons belong to courses; students enroll.", "expect": {"entities": ["courses", "lessons", "students"], "auth": false}}
+{"id": "playlists", "prompt": "Music API: playlists and tracks. Tracks have title and duration. Needs login with JWT.", "expect": {"entities": ["playlists", "tracks"], "auth": true}}
+{"id": "expenses", "prompt": "Expense tracker API: expenses with amount, category, and date. JWT auth.", "expect": {"entities": ["expenses"], "auth": true}}
+{"id": "fitness", "prompt": "Fitness tracker API: workouts with type and duration; exercises belong to workouts. I need JWT auth.", "expect": {"entities": ["workouts", "exercises"], "auth": true}}
+{"id": "chat", "prompt": "A simple chat API: rooms and messages. Messages have text and a sender. JWT auth required.", "expect": {"entities": ["rooms", "messages"], "auth": true}}
+{"id": "journal", "prompt": "Personal journal API: entries with title, body, and mood. Auth with JWT.", "expect": {"entities": ["entries"], "auth": true}}
+{"id": "habits", "prompt": "Habit tracker: habits with name and target; check-ins record completion. JWT auth.", "expect": {"entities": ["habits", "checkins"], "auth": true}}
+{"id": "urls", "prompt": "URL shortener API: links with original URL and short code. JWT auth for creating links.", "expect": {"entities": ["links"], "auth": true}}
+{"id": "photos", "prompt": "Photo album API: albums and photos. Photos have a URL and caption. Needs JWT auth.", "expect": {"entities": ["albums", "photos"], "auth": true}}
+{"id": "school", "prompt": "School API: students, teachers, and classes. Students enroll in classes.", "expect": {"entities": ["students", "teachers", "classes"], "auth": false}}
+{"id": "clinic", "prompt": "Clinic API: patients, doctors, and appointments. Appointments link a patient to a doctor.", "expect": {"entities": ["patients", "doctors", "appointments"], "auth": false}}
+{"id": "ecommerce", "prompt": "E-commerce API: products, categories, and reviews. Reviews belong to products and have a rating.", "expect": {"entities": ["products", "categories", "reviews"], "auth": false}}
+{"id": "restaurant", "prompt": "Restaurant API: dishes with name and price; tables; orders link dishes to a table.", "expect": {"entities": ["dishes", "tables", "orders"], "auth": false}}
+{"id": "projects", "prompt": "Project management API: projects, tasks, and users. Tasks belong to projects and have a status. JWT auth.", "expect": {"entities": ["projects", "tasks", "users"], "auth": true}}
+{"id": "forum", "prompt": "Forum API: threads and posts. Posts have body and belong to a thread. JWT auth.", "expect": {"entities": ["threads", "posts"], "auth": true}}
+{"id": "sensors", "prompt": "IoT API: devices with name; sensor readings with value and timestamp belong to devices.", "expect": {"entities": ["devices", "readings"], "auth": false}}
+{"id": "flags", "prompt": "Feature flag API: flags with name, enabled state, and rollout percentage. JWT auth.", "expect": {"entities": ["flags"], "auth": true}}
+{"id": "weather", "prompt": "Weather station API: stations with location; observations with temperature and humidity.", "expect": {"entities": ["stations", "observations"], "auth": false}}
+{"id": "jobs", "prompt": "Job board API: companies, jobs with title and salary, and applications. JWT auth for applications.", "expect": {"entities": ["companies", "jobs", "applications"], "auth": true}}
+{"id": "realestate", "prompt": "Real estate API: properties with address, price, and bedrooms; agents.", "expect": {"entities": ["properties", "agents"], "auth": false}}
+{"id": "tickets", "prompt": "Support ticket API: tickets with subject, priority, and status; agents handle tickets. JWT auth.", "expect": {"entities": ["tickets", "agents"], "auth": true}}
+{"id": "newsletter", "prompt": "Newsletter API: subscribers with email; campaigns with subject and body.", "expect": {"entities": ["subscribers", "campaigns"], "auth": false}}
+{"id": "polls", "prompt": "Polling API: polls with a question; options belong to polls; votes record a choice. JWT auth.", "expect": {"entities": ["polls", "options", "votes"], "auth": true}}
+{"id": "kanban", "prompt": "Kanban API: boards, columns, and cards. Cards have title and belong to a column. JWT auth.", "expect": {"entities": ["boards", "columns", "cards"], "auth": true}}
+{"id": "podcast", "prompt": "Podcast API: shows with title; episodes with title and duration belong to shows.", "expect": {"entities": ["shows", "episodes"], "auth": false}}
+{"id": "garage", "prompt": "Garage API: cars with make, model, and year; service records belong to cars.", "expect": {"entities": ["cars", "records"], "auth": false}}
+{"id": "cafe", "prompt": "API for a cafe: items with name and price; orders.", "expect": {"entities": ["items", "orders"], "auth": false}}
+{"id": "vague2", "prompt": "Build me a backend for my startup.", "expect": {"needs_clarification": true}}
+{"id": "vague3", "prompt": "I need an API for managing things.", "expect": {"needs_clarification": true}}
+{"id": "vague4", "prompt": "Make something for my business like a shop API.", "expect": {"needs_clarification": true}}
+{"id": "single", "prompt": "A minimal API with just a list of todos. Todos have a title.", "expect": {"entities": ["todos"], "auth": false}}
+{"id": "many", "prompt": "ERP-lite API: customers, products, orders, invoices, payments, shipments, and warehouses.", "expect": {"entities": ["customers", "products", "orders", "invoices", "payments", "shipments", "warehouses"], "auth": false}}
+{"id": "donations", "prompt": "Donation API: campaigns with goal; donors; donations link donors to campaigns and have an amount.", "expect": {"entities": ["campaigns", "donors", "donations"], "auth": false}}
+{"id": "qna", "prompt": "Q&A API: questions with title and body; answers belong to questions. JWT auth.", "expect": {"entities": ["questions", "answers"], "auth": true}}
+{"id": "hotels", "prompt": "Hotel API: hotels with name and city; rooms belong to hotels; bookings link guests to rooms.", "expect": {"entities": ["hotels", "rooms", "bookings"], "auth": false}}
+{"id": "fleet", "prompt": "Fleet API: vehicles with plate number; drivers; trips link a driver to a vehicle. JWT auth.", "expect": {"entities": ["vehicles", "drivers", "trips"], "auth": true}}

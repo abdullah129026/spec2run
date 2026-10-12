@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.0",
+  "info": {"title": "Sensors", "version": "1.0.0"},
+  "paths": {
+    "/devices": {"get": {"responses": {"200": {"description": "ok"}}}},
+    "/readings": {"get": {"responses": {"200": {"description": "ok"}}}}
+  },
+  "components": {"schemas": {
+    "Device": {"type": "object", "required": ["name"], "properties": {
+      "id": {"type": "integer"}, "name": {"type": "string"}}},
+    "Reading": {"type": "object", "required": ["value", "device_id"], "properties": {
+      "id": {"type": "integer"}, "value": {"type": "number"},
+      "recorded_at": {"type": "string", "format": "date-time"},
+      "device_id": {"type": "integer"}}}
+  }}
+}

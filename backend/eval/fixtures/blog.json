@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.0",
+  "info": {"title": "Blog", "version": "1.0.0"},
+  "paths": {
+    "/posts": {"get": {"responses": {"200": {"description": "ok"}}}},
+    "/comments": {"get": {"responses": {"200": {"description": "ok"}}}}
+  },
+  "components": {"schemas": {
+    "Post": {"type": "object", "required": ["title"], "properties": {
+      "id": {"type": "integer"}, "title": {"type": "string"},
+      "body": {"type": "string"}, "tags": {"type": "array", "items": {"type": "string"}}}},
+    "Comment": {"type": "object", "required": ["text", "post_id"], "properties": {
+      "id": {"type": "integer"}, "text": {"type": "string"},
+      "post_id": {"type": "integer"}}}
+  }}
+}
