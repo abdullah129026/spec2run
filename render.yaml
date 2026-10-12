@@ -8,5 +8,9 @@ services:
     envVars:
       - key: SPEC2RUN_GROQ_API_KEY
         sync: false
+      - key: NEON_API_KEY
+        sync: false
+      - key: NEON_PROJECT_ID
+        sync: false
       - key: SPEC2RUN_CORS_ORIGINS
         value: https://spec2run.fluxyai.codes
