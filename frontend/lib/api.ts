@@ -21,6 +21,20 @@ async function postJson(path: string, body: unknown): Promise<Record<string, unk
   return r.json();
 }
 
+// Liveness probe for the sandbox status pill. Never rejects.
+export async function backendAlive(): Promise<boolean> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const r = await fetch(`${API_URL}/health`, { signal: ctrl.signal });
+    return r.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 export function generateSpec(
   prompt: string,
   options: GenerateOptions,

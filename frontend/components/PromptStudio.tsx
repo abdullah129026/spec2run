@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Upload } from "lucide-react";
-import { generateSpec, patchSpec, refineSpec } from "@/lib/api";
+import { backendAlive, generateSpec, patchSpec, refineSpec } from "@/lib/api";
 import { useSpec2RunStore } from "@/lib/store";
 import ImportDialog from "./ImportDialog";
 
@@ -44,6 +44,18 @@ export default function PromptStudio() {
   const busy = status === "loading";
   // A spec already exists: the textarea edits it ("add reviews to books").
   const patchMode = spec !== null && status === "done";
+
+  // Sandbox pill reflects the real backend, not a hardcoded label.
+  const [sandboxLive, setSandboxLive] = useState<boolean | null>(null);
+  useEffect(() => {
+    let on = true;
+    backendAlive().then((v) => {
+      if (on) setSandboxLive(v);
+    });
+    return () => {
+      on = false;
+    };
+  }, []);
 
   function handleResult(res: Record<string, unknown>, label: string) {
     if (res.needs_clarification) {
@@ -123,10 +135,18 @@ export default function PromptStudio() {
         </div>
         <span
           className="flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-800 px-2.5 py-1 text-[11px] text-zinc-500"
-          title="The live sandbox arrives in the week-3 slice"
+          title="Whether the backend's live sandbox is reachable right now"
         >
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-600" />
-          sandbox offline
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              sandboxLive ? "bg-emerald-400" : "bg-zinc-600"
+            }`}
+          />
+          {sandboxLive === null
+            ? "checking sandbox"
+            : sandboxLive
+              ? "sandbox live"
+              : "sandbox offline"}
         </span>
       </div>
 
