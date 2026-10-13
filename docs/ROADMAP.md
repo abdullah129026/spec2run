@@ -71,11 +71,16 @@ per sandbox, and real users — not just features.
       `backend/app/services/eval.py`, `python -m app.services.eval`;
       first run 2026-10-12: 6/6 fixture prompts pass end to end, 44 need the
       LLM key — the full 50-prompt run happens on the deployed backend)
-- [ ] Deploy: Vercel frontend + Render backend (`NEON_API_KEY`,
-      `SPEC2RUN_GROQ_API_KEY` in Render env)
+- [x] Deploy: Vercel frontend + Render backend — done by Abdullah himself
+      2026-10-12/13: `spec2run-api` on Render (Docker, Singapore, free tier),
+      frontend on spec2run.fluxyai.codes (Vercel); health verified 200 on
+      2026-10-13 (`{"status":"ok","service":"spec2run-api"}`), frontend renders
+      the prompt studio
 - [ ] **Real users** — post in hackathon/student Discords, watch 10 people
-      generate APIs, fix what breaks, collect quotes
-- [ ] README polish (eval table, architecture diagram), demo script
+      generate APIs, fix what breaks, collect quotes (kit ready:
+      `docs/OUTREACH.md`)
+- [x] README polish (eval table with measured 6/6 fixture results, mermaid
+      architecture diagram), demo script (`docs/DEMO-SCRIPT.md`)
 - [ ] v1.0 tag
 
 ## Deferred — honest cuts for the 3-week window
