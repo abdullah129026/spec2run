@@ -28,14 +28,20 @@ Measured, not claimed. `backend/eval/` runs 50 prompts through the full
 pipeline (spec → validate → render → boot → smoke-test, including the auth
 flow) and writes the results to `docs/EVAL.md`, failures included.
 
+Latest run (2026-10-12, fixture mode — the LLM stage needs
+`SPEC2RUN_GROQ_API_KEY`, which is configured on the deployed backend):
+
 | Metric | Result |
 |--------|--------|
-| Prompts evaluated | 50 |
-| Valid OpenAPI on first try | _pending first eval run_ |
-| Sandbox boot success | _pending first eval run_ |
-| Endpoints passing smoke tests | _pending first eval run_ |
-| Auth flow passing (where requested) | _pending first eval run_ |
-| Median generation time | _pending first eval run_ |
+| Prompts in corpus | 50 |
+| End-to-end passes | 6/6 measured (44 skipped, no LLM key locally) |
+| Valid OpenAPI specs | 6/6 |
+| Sandbox boots | 6/6 |
+| Smoke tests passing | 6/6, auth flow included where requested |
+| Failures | 0 |
+
+The full 50-prompt LLM run happens on the deployed backend, results land in
+`docs/EVAL.md`.
 
 ## Stack
 
@@ -76,7 +82,24 @@ Postgres per sandbox (falls back to SQLite without it).
 
 ## Architecture
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+```mermaid
+flowchart LR
+    prompt["Typed prompt"] --> llm["Groq JSON mode<br/>OpenAPI 3.0 draft"]
+    url["Swagger URL / file"] --> import["Importer<br/>(no LLM)"]
+    llm --> validate["Validator"]
+    import --> validate
+    llm -->|"vague"| clarify["Clarifying questions"]
+    clarify --> prompt
+    validate --> slots["Slot filling<br/>entities, fields, relations, auth"]
+    slots --> templates["Jinja2 templates<br/>FastAPI + SQLAlchemy"]
+    templates --> sandbox["Sandbox<br/>supervised subprocess"]
+    sandbox --> neon["Neon Postgres<br/>branch per sandbox"]
+    sandbox --> live["Live URL<br/>Swagger UI"]
+    validate --> patch["Patch mode<br/>spec + code diffs"]
+    patch --> validate
+```
+
+Full write-up: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## License
 
