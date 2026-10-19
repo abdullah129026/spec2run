@@ -99,6 +99,7 @@ export default function ImportDialog({ onClose }: { onClose: () => void }) {
               if (e.key === "Enter") submit();
             }}
             placeholder="https://petstore.swagger.io/v2/swagger.json"
+            aria-label="OpenAPI document URL"
             spellCheck={false}
             className="w-full rounded-md border border-zinc-800 bg-zinc-900 p-2.5 font-mono text-xs outline-none placeholder:text-zinc-600 focus:border-indigo-600"
           />
@@ -108,6 +109,7 @@ export default function ImportDialog({ onClose }: { onClose: () => void }) {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder='{"openapi": "3.0.0", ...}'
+            aria-label="OpenAPI document JSON or YAML"
             rows={8}
             spellCheck={false}
             className="w-full rounded-md border border-zinc-800 bg-zinc-900 p-2.5 font-mono text-xs outline-none placeholder:text-zinc-600 focus:border-indigo-600"
