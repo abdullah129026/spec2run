@@ -80,3 +80,21 @@ def test_external_ref_rejected():
         "$ref": "https://example.com/schemas/X.json"
     }
     assert any("only local" in e for e in validate_openapi(spec))
+
+
+def test_info_missing_version():
+    spec = valid_spec()
+    del spec["info"]["version"]
+    assert any("info.version" in e for e in validate_openapi(spec))
+
+
+def test_path_operations_must_be_object():
+    spec = valid_spec()
+    spec["paths"]["/todos"] = "not an object"
+    assert any("must map to an object of operations" in e for e in validate_openapi(spec))
+
+
+def test_components_schemas_must_be_object():
+    spec = valid_spec()
+    spec["components"]["schemas"] = ["Todo"]
+    assert any("components.schemas" in e for e in validate_openapi(spec))

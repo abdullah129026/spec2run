@@ -52,3 +52,11 @@ def test_diff_files_added_removed():
 def test_diff_files_identical_skipped():
     files = {"app.py": "print(1)\n", "requirements.txt": "fastapi\n"}
     assert diff_files(files, dict(files)) == {}
+
+
+def test_diff_specs_removed_list_elements():
+    old = {"tags": ["a", "b", "c"]}
+    new = {"tags": ["a"]}
+    changes = diff_specs(old, new)
+    assert {"path": "tags[1]", "old_value": "b", "new_value": None} in changes
+    assert {"path": "tags[2]", "old_value": "c", "new_value": None} in changes

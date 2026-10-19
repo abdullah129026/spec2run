@@ -186,3 +186,15 @@ def test_github_push_rejects_bad_repo_name():
         json={"spec": BOOKSTORE, "token": "ghp_fake", "repo": "evil name!"},
     )
     assert r.status_code == 422
+
+
+def test_patch_engine_error_is_422(monkeypatch):
+    def boom(spec, prompt, options):
+        raise ValueError("could not apply that change")
+
+    monkeypatch.setattr(specs, "patch_spec", boom)
+    r = client.post(
+        "/specs/patch", json={"spec": BOOKSTORE, "prompt": "add reviews to books"}
+    )
+    assert r.status_code == 422
+    assert "could not apply" in r.json()["detail"]
