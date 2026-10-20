@@ -80,7 +80,7 @@ def _sample_value(prop: dict):
 def _order_by_fk(entities: list[dict]) -> list[dict]:
     """Parents before children so FK columns point at rows that exist."""
     by_plural = {e["plural"]: e for e in entities}
-    ordered, seen, out = set(), set(), []
+    seen, out = set(), []
 
     def visit(e):
         if e["plural"] in seen:

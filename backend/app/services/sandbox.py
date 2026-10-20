@@ -195,7 +195,9 @@ def _kill_locked(sandbox_id: str) -> bool:
     try:
         sb.process.terminate()
         sb.process.wait(timeout=5)
-    except Exception:
+    except (OSError, subprocess.TimeoutExpired):
+        # Already dead or refused to stop: force-kill so the registry
+        # never leaks a zombie sandbox.
         sb.process.kill()
     if sb.branch_id:
         try:

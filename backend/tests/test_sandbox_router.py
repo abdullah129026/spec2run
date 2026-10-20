@@ -1,7 +1,6 @@
 """Sandbox HTTP API, with the process layer faked (see test_sandbox.py
 for the real boot machinery)."""
 import httpx
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
