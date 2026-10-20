@@ -34,7 +34,11 @@ export default function GenerationPanel() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex gap-1 border-b border-zinc-800 px-4">
+      <div
+        role="tablist"
+        aria-label="Output views"
+        className="flex gap-1 border-b border-zinc-800 px-4"
+      >
         {tabs.map((t) => (
           <button
             key={t}
