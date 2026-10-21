@@ -1,6 +1,7 @@
 import io
 import zipfile
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -197,3 +198,36 @@ def test_patch_engine_error_is_422(monkeypatch):
     )
     assert r.status_code == 422
     assert "could not apply" in r.json()["detail"]
+
+
+def test_gh_surfaces_per_error_messages(monkeypatch):
+    """GitHub's real 422 for a duplicate repo name carries the reason in the
+    errors array ("name already exists on this account"), not the top-level
+    message. _gh must surface it, or the existing-repo push-on-top fallback
+    in push_to_github never triggers against the live API."""
+    from fastapi import HTTPException
+
+    class DuplicateName:
+        status_code = 422
+        content = b'{"message":"Repository creation failed."}'
+
+        def json(self):
+            return {
+                "message": "Repository creation failed.",
+                "errors": [
+                    {
+                        "resource": "Repository",
+                        "code": "custom",
+                        "field": "name",
+                        "message": "name already exists on this account",
+                    }
+                ],
+            }
+
+    monkeypatch.setattr(
+        generate.httpx, "request", lambda *a, **k: DuplicateName()
+    )
+    with pytest.raises(HTTPException) as exc:
+        generate._gh("tok", "POST", "/user/repos", {"name": "demo"})
+    assert exc.value.status_code == 502
+    assert "already exists" in exc.value.detail

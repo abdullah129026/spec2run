@@ -135,12 +135,25 @@ def _gh(token: str, method: str, path: str, payload: Optional[dict] = None) -> d
         raise HTTPException(status_code=502, detail=f"GitHub unreachable: {e}")
     if r.status_code >= 400:
         detail = "GitHub rejected the request"
+        body = None
         try:
-            errors = r.json().get("message")
-            if errors:
-                detail = f"GitHub: {errors}"
+            body = r.json()
         except ValueError:
             pass
+        if isinstance(body, dict):
+            # The top-level message is often generic ("Repository creation
+            # failed."); the real reason lives in the errors array ("name
+            # already exists on this account"). Surface both, since the
+            # existing-repo fallback below matches on the reason text.
+            msgs = []
+            if body.get("message"):
+                msgs.append(str(body["message"]))
+            errors = body.get("errors") or []
+            for err in errors:
+                if isinstance(err, dict) and err.get("message"):
+                    msgs.append(str(err["message"]))
+            if msgs:
+                detail = "GitHub: " + "; ".join(msgs)
         if r.status_code in (401, 403):
             detail += " (check the token and its repo scope)"
         raise HTTPException(status_code=502, detail=detail)
