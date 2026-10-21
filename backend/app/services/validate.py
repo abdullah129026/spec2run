@@ -9,16 +9,20 @@ METHODS = {"get", "put", "post", "delete", "patch", "head", "options", "trace"}
 
 
 def _collect_refs(node, refs: set):
-    """Walk the document and collect every $ref value."""
-    if isinstance(node, dict):
-        for key, value in node.items():
-            if key == "$ref" and isinstance(value, str):
-                refs.add(value)
-            else:
-                _collect_refs(value, refs)
-    elif isinstance(node, list):
-        for item in node:
-            _collect_refs(item, refs)
+    """Walk the document and collect every $ref value. Iterative on purpose:
+    submitted specs are user-controlled, and a deeply nested one must not
+    blow the call stack (RecursionError would surface as a 500)."""
+    stack = [node]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, dict):
+            for key, value in current.items():
+                if key == "$ref" and isinstance(value, str):
+                    refs.add(value)
+                else:
+                    stack.append(value)
+        elif isinstance(current, list):
+            stack.extend(current)
 
 
 def validate_openapi(doc: dict) -> list[str]:

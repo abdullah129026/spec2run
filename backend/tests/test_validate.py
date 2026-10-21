@@ -98,3 +98,24 @@ def test_components_schemas_must_be_object():
     spec = valid_spec()
     spec["components"]["schemas"] = ["Todo"]
     assert any("components.schemas" in e for e in validate_openapi(spec))
+
+
+def test_ref_collection_survives_hostile_nesting():
+    """A submitted spec nested deeper than the interpreter's recursion limit
+    must not crash validation (RecursionError -> 500); the walk skips
+    nothing it needs to see, it just never recurses."""
+    import sys
+
+    deep = []
+    node = deep
+    for _ in range(sys.getrecursionlimit() + 100):
+        inner = []
+        node.append(inner)
+        node = inner
+    doc = {
+        "openapi": "3.0.0",
+        "info": {"title": "t", "version": "1"},
+        "paths": {"/x": {"get": {"responses": {}}}},
+        "components": {"schemas": {"Deep": deep}},
+    }
+    assert isinstance(validate_openapi(doc), list)
