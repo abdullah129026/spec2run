@@ -78,7 +78,8 @@ Postgres per sandbox (falls back to SQLite without it).
 
 ## Roadmap
 
-3-week build (2026-10-08 → 2026-10-29). See [docs/ROADMAP.md](docs/ROADMAP.md).
+v1.0 shipped 2026-10-21, a week ahead of schedule. Build history:
+[docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Architecture
 

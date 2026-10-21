@@ -78,10 +78,11 @@ per sandbox, and real users — not just features.
       the prompt studio
 - [ ] **Real users** — post in hackathon/student Discords, watch 10 people
       generate APIs, fix what breaks, collect quotes (kit ready:
-      `docs/OUTREACH.md`)
+      `docs/OUTREACH.md`; deferred to later at Abdullah's call, 2026-10-21)
 - [x] README polish (eval table with measured 6/6 fixture results, mermaid
       architecture diagram), demo script (`docs/DEMO-SCRIPT.md`)
-- [ ] v1.0 tag
+- [x] v1.0 tag — tagged 2026-10-21, a week ahead of schedule (annotated tag
+      on commit d817cdb, after a one-line CI fix made both jobs green)
 
 ## Deferred — honest cuts for the 3-week window
 
