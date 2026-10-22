@@ -49,11 +49,19 @@ export default function PromptStudio() {
   const [sandboxLive, setSandboxLive] = useState<boolean | null>(null);
   useEffect(() => {
     let on = true;
-    backendAlive().then((v) => {
-      if (on) setSandboxLive(v);
-    });
+    const probe = () => {
+      backendAlive().then((v) => {
+        if (on) setSandboxLive(v);
+      });
+    };
+    probe();
+    // The backend sleeps on a free Render tier and can take 30-60s to
+    // cold-start; a one-shot probe would leave the pill stuck on
+    // "offline" for the whole visit.
+    const id = setInterval(probe, 60000);
     return () => {
       on = false;
+      clearInterval(id);
     };
   }, []);
 
