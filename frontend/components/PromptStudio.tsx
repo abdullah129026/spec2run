@@ -142,6 +142,7 @@ export default function PromptStudio() {
           </p>
         </div>
         <span
+          role="status"
           className="flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-800 px-2.5 py-1 text-[11px] text-zinc-500"
           title="Whether the backend's live sandbox is reachable right now"
         >
