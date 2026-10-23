@@ -8,7 +8,7 @@ drafts face, so an imported project is indistinguishable from a generated one.
 import ipaddress
 import json
 import socket
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
 import yaml
@@ -17,6 +17,7 @@ from app.services.validate import validate_openapi
 
 MAX_IMPORT_BYTES = 2 * 1024 * 1024
 FETCH_TIMEOUT = 10.0
+MAX_REDIRECTS = 3
 
 
 def _public_url(raw: str) -> str:
@@ -33,6 +34,29 @@ def _public_url(raw: str) -> str:
         if not ip.is_global:
             raise ValueError(f"rejected: not a public host: {parsed.hostname!r}")
     return raw
+
+
+def _fetch_guarded(url: str) -> httpx.Response:
+    """GET a URL with the SSRF guard applied to every redirect hop.
+
+    httpx follows redirects automatically, which would let a public URL
+    bounce to an internal host and bypass _public_url entirely; so
+    redirects are followed manually here and each hop is re-checked.
+    """
+    current = url
+    for _ in range(MAX_REDIRECTS + 1):
+        _public_url(current)
+        resp = httpx.get(
+            current, timeout=FETCH_TIMEOUT, follow_redirects=False,
+            headers={"User-Agent": "Spec2Run/0.1"},
+        )
+        if resp.status_code not in (301, 302, 303, 307, 308):
+            return resp
+        location = resp.headers.get("location")
+        if not location:
+            return resp
+        current = urljoin(current, location)
+    raise ValueError("too many redirects fetching import URL")
 
 
 def _parse(text: str) -> dict:
@@ -56,10 +80,7 @@ def import_openapi(url: str | None = None, content: str | None = None) -> dict:
     if bool(url) == bool(content):
         raise ValueError("provide exactly one of 'url' or 'content'")
     if url:
-        _public_url(url)
-        resp = httpx.get(
-            url, timeout=FETCH_TIMEOUT, headers={"User-Agent": "Spec2Run/0.1"}
-        )
+        resp = _fetch_guarded(url)
         resp.raise_for_status()
         if len(resp.content) > MAX_IMPORT_BYTES:
             raise ValueError("document too large (limit 2 MB)")

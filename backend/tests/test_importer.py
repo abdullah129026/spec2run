@@ -1,4 +1,5 @@
 import httpx
+import ipaddress
 import json
 import socket
 import pytest
@@ -65,6 +66,8 @@ def _fake_dns(monkeypatch):
 def test_import_url_fetch(monkeypatch):
     _fake_dns(monkeypatch)
     class FakeResp:
+        status_code = 200
+        headers = {}
         content = json.dumps(GOOD).encode()
         text = json.dumps(GOOD)
 
@@ -79,6 +82,8 @@ def test_import_url_fetch(monkeypatch):
 def test_import_url_oversize(monkeypatch):
     _fake_dns(monkeypatch)
     class FakeResp:
+        status_code = 200
+        headers = {}
         content = b"x" * (importer.MAX_IMPORT_BYTES + 1)
 
         def raise_for_status(self):
@@ -87,6 +92,83 @@ def test_import_url_oversize(monkeypatch):
     monkeypatch.setattr(httpx, "get", lambda *a, **k: FakeResp())
     with pytest.raises(ValueError, match="too large"):
         importer.import_openapi(url="https://example.com/big.json")
+
+
+def _redirect_resp(location):
+    class FakeResp:
+        status_code = 302
+        headers = {"location": location}
+        content = b""
+        text = ""
+
+        def raise_for_status(self):
+            pass
+
+    return FakeResp()
+
+
+def _fake_dns_loopback_aware(monkeypatch):
+    """Fake public DNS, but IP literals still resolve to themselves."""
+    def fake(host, *a, **k):
+        try:
+            addr = str(ipaddress.ip_address(host))
+        except ValueError:
+            addr = "93.184.216.34"
+        return [(2, 1, 6, "", (addr, 0))]
+
+    monkeypatch.setattr(socket, "getaddrinfo", fake)
+
+
+def test_import_redirect_to_internal_blocked(monkeypatch):
+    _fake_dns_loopback_aware(monkeypatch)
+    calls = []
+
+    def fake_get(url, **kwargs):
+        calls.append(url)
+        assert kwargs.get("follow_redirects") is False
+        return _redirect_resp("http://127.0.0.1/admin")
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    with pytest.raises(ValueError, match="rejected"):
+        importer.import_openapi(url="https://example.com/swagger.json")
+    assert calls == ["https://example.com/swagger.json"]
+
+
+def test_import_redirect_to_public_followed(monkeypatch):
+    _fake_dns(monkeypatch)
+    seen = []
+
+    class Final:
+        status_code = 200
+        headers = {}
+        content = json.dumps(GOOD).encode()
+        text = json.dumps(GOOD)
+
+        def raise_for_status(self):
+            pass
+
+    def fake_get(url, **kwargs):
+        seen.append(url)
+        if url == "https://example.com/swagger.json":
+            return _redirect_resp("https://cdn.example.com/swagger.json")
+        return Final()
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    doc = importer.import_openapi(url="https://example.com/swagger.json")
+    assert doc["info"]["title"] == "Books"
+    assert seen == ["https://example.com/swagger.json",
+                    "https://cdn.example.com/swagger.json"]
+
+
+def test_import_too_many_redirects(monkeypatch):
+    _fake_dns(monkeypatch)
+
+    def fake_get(url, **kwargs):
+        return _redirect_resp("https://example.com/loop")
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    with pytest.raises(ValueError, match="too many redirects"):
+        importer.import_openapi(url="https://example.com/swagger.json")
 
 
 def test_router_import_success(monkeypatch):
