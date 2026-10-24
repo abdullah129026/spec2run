@@ -64,3 +64,17 @@ def test_refine_appends_answers(monkeypatch):
         },
     )
     assert "book inventory" in seen["p"]
+
+
+def test_patch_rejects_oversize_spec_before_llm(monkeypatch):
+    from tests.test_validate import valid_spec
+
+    called = []
+    monkeypatch.setattr(
+        specs, "patch_spec", lambda s, p, o: called.append(1) or {}
+    )
+    spec = valid_spec()
+    spec["info"]["description"] = "x" * (2 * 1024 * 1024)
+    r = client.post("/specs/patch", json={"spec": spec, "prompt": "rename it"})
+    assert r.status_code == 413
+    assert called == []

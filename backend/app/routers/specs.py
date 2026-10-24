@@ -1,9 +1,11 @@
+import json
 from typing import Literal, Optional
 
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.routers.generate import MAX_SPEC_BYTES
 from app.services.importer import import_openapi
 from app.services.specgen import patch_spec, prompt_to_spec
 from app.services.validate import validate_openapi
@@ -91,6 +93,10 @@ def patch_existing_spec(req: PatchRequest):
 
     Returns the updated, re-validated spec — or the clarification payload when
     the change is too vague to apply. The old spec must itself be valid."""
+    # Same 2 MB ceiling as the other spec-taking endpoints; without it a
+    # huge spec would reach the LLM call unchecked.
+    if len(json.dumps(req.spec)) > MAX_SPEC_BYTES:
+        raise HTTPException(status_code=413, detail="spec exceeds 2 MB")
     problems = validate_openapi(req.spec)
     if problems:
         raise HTTPException(
