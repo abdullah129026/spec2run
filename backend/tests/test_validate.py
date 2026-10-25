@@ -100,6 +100,13 @@ def test_components_schemas_must_be_object():
     assert any("components.schemas" in e for e in validate_openapi(spec))
 
 
+def test_components_must_be_object():
+    for bad in ("not an object", ["schemas"], 42):
+        spec = valid_spec()
+        spec["components"] = bad
+        assert any("components" in e for e in validate_openapi(spec))
+
+
 def test_ref_collection_survives_hostile_nesting():
     """A submitted spec nested deeper than the interpreter's recursion limit
     must not crash validation (RecursionError -> 500); the walk skips

@@ -60,7 +60,14 @@ def validate_openapi(doc: dict) -> list[str]:
                 if not isinstance(operation, dict) or not operation.get("responses"):
                     errors.append(f"{path} {method}: 'responses' is required")
 
-    schemas = (doc.get("components") or {}).get("schemas") or {}
+    components = doc.get("components")
+    if components is None:
+        schemas = {}
+    elif not isinstance(components, dict):
+        errors.append("'components' must be an object")
+        schemas = {}
+    else:
+        schemas = components.get("schemas") or {}
     if not isinstance(schemas, dict):
         errors.append("'components.schemas' must be an object")
         schemas = {}
