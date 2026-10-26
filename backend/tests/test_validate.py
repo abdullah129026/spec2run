@@ -88,6 +88,29 @@ def test_info_missing_version():
     assert any("info.version" in e for e in validate_openapi(spec))
 
 
+def test_path_item_fields_are_not_methods():
+    """Real OpenAPI path items carry summary/description/parameters next to
+    the operations; those fields are not methods and must not be rejected."""
+    spec = valid_spec()
+    spec["paths"]["/todos"]["summary"] = "Todo operations"
+    spec["paths"]["/todos"]["parameters"] = [
+        {"name": "X-Tenant", "in": "header", "schema": {"type": "string"}}
+    ]
+    assert validate_openapi(spec) == []
+
+
+def test_path_with_no_operation_rejected():
+    spec = valid_spec()
+    spec["paths"]["/todos"] = {}
+    assert any("at least one operation" in e for e in validate_openapi(spec))
+
+
+def test_path_with_only_path_item_fields_rejected():
+    spec = valid_spec()
+    spec["paths"]["/todos"] = {"summary": "Todo operations"}
+    assert any("at least one operation" in e for e in validate_openapi(spec))
+
+
 def test_path_operations_must_be_object():
     spec = valid_spec()
     spec["paths"]["/todos"] = "not an object"

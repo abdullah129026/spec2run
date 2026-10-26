@@ -7,6 +7,11 @@ Returns plain strings, not exceptions — the caller decides what to do with the
 
 METHODS = {"get", "put", "post", "delete", "patch", "head", "options", "trace"}
 
+# Fields a path item may carry next to its operations (OpenAPI 3.0). These
+# are not methods: a real imported document with path-level parameters or a
+# summary must not be rejected as an "unknown method".
+PATH_ITEM_FIELDS = {"summary", "description", "servers", "parameters", "$ref"}
+
 
 def _collect_refs(node, refs: set):
     """Walk the document and collect every $ref value. Iterative on purpose:
@@ -54,11 +59,15 @@ def validate_openapi(doc: dict) -> list[str]:
                 errors.append(f"path {path!r} must map to an object of operations")
                 continue
             for method, operation in operations.items():
+                if method in PATH_ITEM_FIELDS:
+                    continue
                 if method not in METHODS:
                     errors.append(f"{path}: unknown method {method!r}")
                     continue
                 if not isinstance(operation, dict) or not operation.get("responses"):
                     errors.append(f"{path} {method}: 'responses' is required")
+            if not any(key in METHODS for key in operations):
+                errors.append(f"path {path!r} must define at least one operation")
 
     components = doc.get("components")
     if components is None:
