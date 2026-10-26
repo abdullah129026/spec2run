@@ -106,6 +106,15 @@ def diff_versions(req: DiffRequest):
     "file_diffs": {path: unified_diff}}."""
     _check_spec(req.old_spec, "old_spec")
     _check_spec(req.new_spec, "new_spec")
+    if req.new_files is not None:
+        # Monaco edits bypass the spec ceiling (they are raw file contents,
+        # not a spec); cap them at the same 2 MB before difflib sees them.
+        edited_bytes = sum(
+            len(path.encode()) + len(content.encode())
+            for path, content in req.new_files.items()
+        )
+        if edited_bytes > MAX_SPEC_BYTES:
+            raise HTTPException(status_code=413, detail="new_files exceeds 2 MB")
     old_files = _render(req.old_spec, False)["files"]
     new_files = (
         req.new_files if req.new_files is not None

@@ -73,6 +73,17 @@ def test_diff_with_edited_files_override():
     assert "+# edited in monaco" in body["file_diffs"]["app.py"]
 
 
+def test_diff_rejects_oversize_edited_files():
+    """Monaco edits ride in as new_files, bypassing the 2 MB ceiling that
+    covers both specs; an unbounded payload would reach difflib unchecked."""
+    big = {"app.py": "x" * (2 * 1024 * 1024 + 1)}
+    r = client.post(
+        "/generate/diff",
+        json={"old_spec": BOOKSTORE, "new_spec": BOOKSTORE, "new_files": big},
+    )
+    assert r.status_code == 413
+
+
 def test_diff_rejects_invalid_old_spec():
     r = client.post(
         "/generate/diff",
