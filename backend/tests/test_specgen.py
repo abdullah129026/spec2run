@@ -59,3 +59,21 @@ def test_unknown_options_are_ignored(fake_llm):
     fake_llm["draft"] = valid_spec()
     specgen.prompt_to_spec("A todo API", {"auth": False, "hacker": "rm -rf /"})
     assert "hacker" not in fake_llm["user"]
+
+
+def test_non_object_draft_raises_not_crashes(fake_llm):
+    fake_llm["draft"] = ["not", "an", "object"]
+    with pytest.raises(ValueError, match="expected a JSON object"):
+        specgen.prompt_to_spec("A todo API")
+
+
+def test_string_questions_rejected(fake_llm):
+    fake_llm["draft"] = {"needs_clarification": True, "questions": "What API?"}
+    with pytest.raises(ValueError, match="must be a list"):
+        specgen.prompt_to_spec("vague")
+
+
+def test_empty_questions_rejected(fake_llm):
+    fake_llm["draft"] = {"needs_clarification": True, "questions": []}
+    with pytest.raises(ValueError, match="no questions"):
+        specgen.prompt_to_spec("vague")

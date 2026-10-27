@@ -40,6 +40,25 @@ def _user_message(prompt: str, options: dict) -> str:
     return "\n".join(lines)
 
 
+def _clarification_questions(doc: dict) -> list[str]:
+    """Questions from a clarification draft, or raise on malformed output.
+
+    complete_json returns whatever JSON the model produced, so a non-list
+    'questions' (e.g. a bare string) used to iterate into single-character
+    questions, and a non-dict document crashed the caller with AttributeError
+    (a 500) instead of a clean 422. A broken draft is never guessed from.
+    """
+    if not isinstance(doc, dict):
+        raise ValueError("model produced invalid OpenAPI: expected a JSON object")
+    questions = doc.get("questions")
+    if not isinstance(questions, list):
+        raise ValueError("model produced unusable clarification: 'questions' must be a list")
+    questions = [q for q in questions if isinstance(q, str)]
+    if not questions:
+        raise ValueError("model produced unusable clarification: no questions")
+    return questions[:4]
+
+
 def _normalize(doc: dict) -> dict:
     """Keep only the top-level keys a spec may carry."""
     return {k: doc[k] for k in ("openapi", "info", "paths", "components") if k in doc}
@@ -55,9 +74,11 @@ def prompt_to_spec(prompt: str, options: dict | None = None) -> dict:
     options = {k: v for k, v in (options or {}).items() if k in KNOWN_OPTIONS}
     doc = llm.complete_json(SYSTEM_PROMPT, _user_message(prompt, options))
 
+    if not isinstance(doc, dict):
+        raise ValueError("model produced invalid OpenAPI: expected a JSON object")
     if doc.get("needs_clarification"):
-        questions = [q for q in doc.get("questions", []) if isinstance(q, str)]
-        return {"needs_clarification": True, "questions": questions[:4]}
+        return {"needs_clarification": True,
+                "questions": _clarification_questions(doc)}
 
     doc = _normalize(doc)
     problems = validate_openapi(doc)
@@ -104,9 +125,11 @@ def patch_spec(existing: dict, change: str, options: dict | None = None) -> dict
         user_message += "\nOptions: " + ", ".join(prefs)
     doc = llm.complete_json(PATCH_SYSTEM_PROMPT, user_message)
 
+    if not isinstance(doc, dict):
+        raise ValueError("model produced invalid OpenAPI: expected a JSON object")
     if doc.get("needs_clarification"):
-        questions = [q for q in doc.get("questions", []) if isinstance(q, str)]
-        return {"needs_clarification": True, "questions": questions[:4]}
+        return {"needs_clarification": True,
+                "questions": _clarification_questions(doc)}
 
     doc = _normalize(doc)
     problems = validate_openapi(doc)
