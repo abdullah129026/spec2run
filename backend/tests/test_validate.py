@@ -149,3 +149,15 @@ def test_ref_collection_survives_hostile_nesting():
         "components": {"schemas": {"Deep": deep}},
     }
     assert isinstance(validate_openapi(doc), list)
+
+
+def test_non_string_info_title_rejected():
+    spec = valid_spec()
+    spec["info"]["title"] = 123
+    assert any("info.title" in e for e in validate_openapi(spec))
+
+
+def test_non_string_info_version_rejected():
+    spec = valid_spec()
+    spec["info"]["version"] = 1.0
+    assert any("info.version" in e for e in validate_openapi(spec))

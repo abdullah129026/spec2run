@@ -42,10 +42,15 @@ def validate_openapi(doc: dict) -> list[str]:
     if not isinstance(info, dict):
         errors.append("'info' must be an object")
     else:
-        if not info.get("title"):
-            errors.append("'info.title' is required")
-        if not info.get("version"):
-            errors.append("'info.version' is required")
+        # OpenAPI requires strings here, and a truthy non-string (title: 123,
+        # version: 1.0) used to pass this check and flow into templates and
+        # the zip filename unchecked.
+        title = info.get("title")
+        if not isinstance(title, str) or not title:
+            errors.append("'info.title' must be a non-empty string")
+        version = info.get("version")
+        if not isinstance(version, str) or not version:
+            errors.append("'info.version' must be a non-empty string")
 
     paths = doc.get("paths")
     if not isinstance(paths, dict) or not paths:
