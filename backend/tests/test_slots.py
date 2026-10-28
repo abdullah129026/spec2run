@@ -127,3 +127,18 @@ def test_bad_field_name_rejected():
 def test_non_dict_spec_rejected():
     with pytest.raises(ValueError):
         slots.slots_from_spec(["nope"])
+
+
+@pytest.mark.parametrize("schema", [
+    {"type": "object", "properties": ["title"]},
+    {"type": "object", "properties": "title"},
+    {"type": "object", "properties": {"title": {"type": "string"}}, "required": 123},
+    {"type": "object", "properties": {"title": {"type": "string"}}, "required": "title"},
+])
+def test_malformed_schema_shape_rejected(schema):
+    # The validator never inspects schema internals, so these used to reach
+    # slot filling and crash with AttributeError/TypeError (a 500 on
+    # /generate/code) instead of a clean ValueError (a 422).
+    spec = dict(BOOKSTORE, components={"schemas": {"Book": schema}})
+    with pytest.raises(ValueError):
+        slots.slots_from_spec(spec)

@@ -106,8 +106,22 @@ def slots_from_spec(spec: dict, options: dict | None = None) -> dict:
             # hash); a spec-defined User would collide with it.
             continue
         schema = schema if isinstance(schema, dict) else {}
-        props = schema.get("properties") or {}
-        required = set(schema.get("required") or [])
+        # The validator never inspects schema internals, so a malformed
+        # shape must fail here as ValueError (the router maps it to 422),
+        # not as AttributeError/TypeError from .items()/set() (a 500).
+        props = schema.get("properties")
+        if props is None:
+            props = {}
+        elif not isinstance(props, dict):
+            raise ValueError(f"schema {schema_name!r} 'properties' must be an object")
+        required_raw = schema.get("required")
+        if required_raw is None:
+            required_raw = []
+        elif not isinstance(required_raw, list) or not all(
+            isinstance(r, str) for r in required_raw
+        ):
+            raise ValueError(f"schema {schema_name!r} 'required' must be a list of strings")
+        required = set(required_raw)
         fields = [_field(n, p, required, plurals) for n, p in props.items()]
         create_fields = [f for f in fields if f["name"] != "id"]
         entities.append({
