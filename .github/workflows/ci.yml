@@ -14,6 +14,9 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
+          # without this, setup-python looks for requirements.txt at the
+          # repo root (there is none) and the cache never restores
+          cache-dependency-path: backend/requirements*.txt
       - run: pip install -r backend/requirements.txt -r backend/requirements-dev.txt
       - run: cd backend && python -m pytest tests -q
       - run: ruff check backend/ --select F
