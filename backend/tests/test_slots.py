@@ -124,6 +124,19 @@ def test_bad_field_name_rejected():
         slots.slots_from_spec(spec)
 
 
+def test_non_string_schema_and_field_names_rejected():
+    # YAML keys need not be strings: `123:` under schemas parses as an int
+    # key, which used to crash slot filling with TypeError instead of the
+    # ValueError every caller expects (the router maps it to 422).
+    spec = dict(BOOKSTORE, components={"schemas": {123: {"type": "object"}}})
+    with pytest.raises(ValueError, match="schema"):
+        slots.slots_from_spec(spec)
+    spec = dict(BOOKSTORE, components={"schemas": {
+        "Book": {"type": "object", "properties": {5: {"type": "string"}}}}})
+    with pytest.raises(ValueError, match="field"):
+        slots.slots_from_spec(spec)
+
+
 def test_non_dict_spec_rejected():
     with pytest.raises(ValueError):
         slots.slots_from_spec(["nope"])

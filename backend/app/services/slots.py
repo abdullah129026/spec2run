@@ -37,7 +37,11 @@ def _plural(name: str) -> str:
 
 
 def _check_ident(value: str, what: str) -> str:
-    if not IDENT.match(value):
+    # YAML keys need not be strings (a schema named `123:` parses as an
+    # int), and re.match on a non-string raises TypeError, not the
+    # ValueError every caller of this module expects (the router maps it
+    # to 422; eval catches only ValueError/RuntimeError).
+    if not isinstance(value, str) or not IDENT.match(value):
         raise ValueError(f"spec uses unsupported {what} name: {value!r}")
     return value
 
