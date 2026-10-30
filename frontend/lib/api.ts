@@ -66,13 +66,10 @@ export function importSpec(payload: {
 export async function generateCode(
   spec: Record<string, unknown>,
 ): Promise<{ files: Record<string, string> }> {
-  const r = await fetch(`${API_URL}/generate/code`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ spec }),
-  });
-  if (!r.ok) throw new Error(`code generation failed: ${r.status}`);
-  return r.json();
+  // postJson surfaces the backend's detail (e.g. the exact validation
+  // problem) instead of a bare status, which is what CodeTab shows.
+  const res = await postJson("/generate/code", { spec });
+  return res as unknown as { files: Record<string, string> };
 }
 
 export interface SpecChange {
