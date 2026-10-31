@@ -1,4 +1,6 @@
 pytest==9.0.3
+# coverage gate in CI
+pytest-cov==7.1.0
 # test-only: boot the generated FastAPI services (templates need these at runtime)
 pyjwt==2.15.1
 bcrypt==4.1.1
