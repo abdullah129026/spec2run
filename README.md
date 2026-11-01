@@ -1,5 +1,7 @@
 # Spec2Run — Prompt to Microservice
 
+**Live demo: [spec2run.fluxyai.codes](https://spec2run.fluxyai.codes)**
+
 **"Type your API into existence. Describe it in plain English, get a live deployed microservice."**
 
 Describe an API in plain English and Spec2Run generates a
