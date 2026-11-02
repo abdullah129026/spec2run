@@ -67,7 +67,7 @@ export default function GenerationPanel() {
       )}
 
       {status === "error" && error && tab !== "Diff" && (
-        <div className="flex flex-1 items-center justify-center p-8">
+        <div className="flex flex-1 items-center justify-center p-8" role="alert">
           <div className="max-w-sm rounded-md border border-red-900/60 bg-red-950/30 p-4 text-center">
             <p className="text-sm font-medium text-red-300">Generation failed</p>
             <p className="mt-1 text-xs leading-relaxed text-red-400">{error}</p>

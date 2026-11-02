@@ -117,7 +117,10 @@ export default function ImportDialog({ onClose }: { onClose: () => void }) {
         )}
 
         {error && (
-          <p className="mt-3 rounded-md border border-red-900/60 bg-red-950/30 p-2.5 text-xs leading-relaxed text-red-400">
+          <p
+            role="alert"
+            className="mt-3 rounded-md border border-red-900/60 bg-red-950/30 p-2.5 text-xs leading-relaxed text-red-400"
+          >
             {error}
           </p>
         )}

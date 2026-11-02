@@ -235,7 +235,10 @@ export default function PromptStudio() {
       )}
 
       {status === "error" && error && (
-        <div className="rounded-md border border-red-900/60 bg-red-950/30 p-3">
+        <div
+          role="alert"
+          className="rounded-md border border-red-900/60 bg-red-950/30 p-3"
+        >
           <p className="text-xs leading-relaxed text-red-400">{error}</p>
           <button
             type="button"
