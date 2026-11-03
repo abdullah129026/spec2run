@@ -55,7 +55,12 @@ def _auth_requested(spec: dict, options: dict | None) -> bool:
     """True when the user asked for auth or the spec declares a bearer scheme."""
     if (options or {}).get("auth"):
         return True
-    schemes = (spec.get("components") or {}).get("securitySchemes") or {}
+    components = spec.get("components") or {}
+    if not isinstance(components, dict):
+        raise ValueError("'components' must be an object")
+    schemes = components.get("securitySchemes") or {}
+    if not isinstance(schemes, dict):
+        raise ValueError("'components.securitySchemes' must be an object")
     for scheme in schemes.values():
         if not isinstance(scheme, dict):
             continue
@@ -97,8 +102,18 @@ def slots_from_spec(spec: dict, options: dict | None = None) -> dict:
     """
     if not isinstance(spec, dict):
         raise ValueError("spec must be an object")
+    # Same rule as the schema shapes below: a malformed top level must fail
+    # here as ValueError (the router maps it to 422), not as AttributeError
+    # from .get()/.items() or a template crash on a non-dict info (a 500).
     info = spec.get("info") or {}
-    schemas = (spec.get("components") or {}).get("schemas") or {}
+    if not isinstance(info, dict):
+        raise ValueError("'info' must be an object")
+    components = spec.get("components") or {}
+    if not isinstance(components, dict):
+        raise ValueError("'components' must be an object")
+    schemas = components.get("schemas") or {}
+    if not isinstance(schemas, dict):
+        raise ValueError("'components.schemas' must be an object")
     auth = _auth_requested(spec, options)
 
     plurals = {_class_name(n): _plural(_class_name(n)) for n in schemas if isinstance(n, str)}

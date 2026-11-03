@@ -155,3 +155,17 @@ def test_malformed_schema_shape_rejected(schema):
     spec = dict(BOOKSTORE, components={"schemas": {"Book": schema}})
     with pytest.raises(ValueError):
         slots.slots_from_spec(spec)
+
+
+@pytest.mark.parametrize("spec", [
+    dict(BOOKSTORE, components="not-an-object"),
+    dict(BOOKSTORE, components={"schemas": ["Book"]}),
+    dict(BOOKSTORE, components={"schemas": {}, "securitySchemes": "bearer"}),
+    dict(BOOKSTORE, info="not-an-object"),
+])
+def test_malformed_top_level_shape_rejected(spec):
+    # Same pattern as the schema-shape test above: these used to reach
+    # slot filling and crash with AttributeError (a 500) instead of the
+    # ValueError every caller expects (the router maps it to 422).
+    with pytest.raises(ValueError):
+        slots.slots_from_spec(spec)
