@@ -107,7 +107,7 @@ export default function CodeTab() {
           {version.edits[path] !== undefined && (
             <span
               className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-300"
-              title="Edited locally — the sandbox reboot in week 3 applies these"
+              title="Edited locally in this editor only — downloads and pushes still render from the spec"
             >
               modified
             </span>
