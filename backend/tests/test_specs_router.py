@@ -66,6 +66,18 @@ def test_refine_appends_answers(monkeypatch):
     assert "book inventory" in seen["p"]
 
 
+def test_refine_rejects_oversize_answer():
+    r = client.post(
+        "/specs/refine",
+        json={
+            "prompt": "Make me an API for my shop",
+            "questions": ["What should it manage?"],
+            "answers": ["x" * 1001],
+        },
+    )
+    assert r.status_code == 422
+
+
 def test_patch_rejects_oversize_spec_before_llm(monkeypatch):
     from tests.test_validate import valid_spec
 

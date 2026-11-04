@@ -1,5 +1,5 @@
 import json
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -22,8 +22,16 @@ class GenerateRequest(BaseModel):
 
 class RefineRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=4000)
-    questions: list[str] = Field(default_factory=list, max_length=10)
-    answers: list[str] = Field(default_factory=list, max_length=10)
+    # Field(max_length=10) alone caps the list length, not the items: a
+    # single megabyte answer would still reach the LLM prompt builder.
+    # Cap each item too; the handler truncates the joined answers to
+    # 2000 chars anyway, so nothing legitimate is lost.
+    questions: list[Annotated[str, Field(max_length=1000)]] = Field(
+        default_factory=list, max_length=10
+    )
+    answers: list[Annotated[str, Field(max_length=1000)]] = Field(
+        default_factory=list, max_length=10
+    )
     auth: bool = False
 
 
