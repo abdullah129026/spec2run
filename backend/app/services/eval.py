@@ -178,8 +178,19 @@ def smoke_test(sb: sandbox_svc.Sandbox, spec: dict, rendered: dict) -> list[str]
         created[plural] = row_id
 
         r = call("GET", f"/{plural}", headers=headers)
-        check(r is not None and r.status_code == 200
-              and any(row.get("id") == row_id for row in r.json()),
+        # A generated service may return a wrapped object ({"items": [...]})
+        # or a non-JSON body instead of a list; either is a smoke failure,
+        # not a crash of the whole eval run (row.get on a dict key raises
+        # AttributeError, a bad body raises ValueError out of r.json()).
+        rows = None
+        if r is not None and r.status_code == 200:
+            try:
+                rows = r.json()
+            except ValueError:
+                rows = None
+        check(isinstance(rows, list)
+              and any(isinstance(row, dict)
+                      and row.get("id") == row_id for row in rows),
               f"GET /{plural} missing the created row")
         r = call("GET", f"/{plural}/{row_id}", headers=headers)
         check(r is not None and r.status_code == 200,

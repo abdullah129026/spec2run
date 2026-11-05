@@ -68,6 +68,73 @@ def test_run_one_rejects_invalid_openapi():
     assert item["stages"]["validate"] == "failed"
 
 
+class _FakeResp:
+    def __init__(self, status, body=None, bad_json=False):
+        self.status_code = status
+        self._body = body
+        self._bad_json = bad_json
+
+    def json(self):
+        if self._bad_json:
+            raise ValueError("not json")
+        return self._body
+
+
+def _fake_proxy(list_body, bad_json=False):
+    """Stand-in for sandbox_svc.proxy: a well-behaved generated service
+    except for what GET /{plural} returns."""
+    deleted = set()
+
+    def proxy(sb, method, path, query, headers, body):
+        if method == "GET" and path == "health":
+            return _FakeResp(200, {})
+        if method == "POST":
+            return _FakeResp(201, {"id": 1})
+        if method == "GET" and path in ("books", "authors"):
+            return _FakeResp(200, list_body, bad_json=bad_json)
+        if method == "GET" and path.endswith("/1"):
+            return _FakeResp(404 if path in deleted else 200, {"id": 1})
+        if method == "PUT":
+            return _FakeResp(200, {"id": 1})
+        if method == "DELETE":
+            deleted.add(path)
+            return _FakeResp(204, None)
+        raise AssertionError(f"unexpected {method} {path}")
+
+    return proxy
+
+
+def _rendered_bookstore():
+    from app.services.codegen import render_service
+
+    return render_service(BOOKSTORE, {"auth": False})
+
+
+def test_smoke_test_passes_on_list_body(monkeypatch):
+    monkeypatch.setattr(
+        eval_svc.sandbox_svc, "proxy", _fake_proxy([{"id": 1}]))
+    assert eval_svc.smoke_test(None, BOOKSTORE, _rendered_bookstore()) == []
+
+
+def test_smoke_test_records_failure_not_crash_on_dict_body(monkeypatch):
+    """A generated service wrapping its list in an object ({"items": [...]})
+    must fail the smoke test, not crash the whole eval run with
+    AttributeError from row.get on a dict key."""
+    monkeypatch.setattr(
+        eval_svc.sandbox_svc, "proxy", _fake_proxy({"items": [{"id": 1}]}))
+    failures = eval_svc.smoke_test(None, BOOKSTORE, _rendered_bookstore())
+    assert failures
+    assert any("missing the created row" in f for f in failures)
+
+
+def test_smoke_test_records_failure_not_crash_on_non_json_body(monkeypatch):
+    monkeypatch.setattr(
+        eval_svc.sandbox_svc, "proxy", _fake_proxy(None, bad_json=True))
+    failures = eval_svc.smoke_test(None, BOOKSTORE, _rendered_bookstore())
+    assert failures
+    assert any("missing the created row" in f for f in failures)
+
+
 def test_write_report(tmp_path):
     out = tmp_path / "EVAL.md"
     eval_svc.write_report({
