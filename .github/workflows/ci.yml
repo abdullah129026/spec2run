@@ -24,9 +24,9 @@ jobs:
           # repo root (there is none) and the cache never restores
           cache-dependency-path: backend/requirements*.txt
       - run: pip install -r backend/requirements.txt -r backend/requirements-dev.txt
-      # ratchet gate, mirroring PRISM: measured 78% on 2026-10-31, so 75%
+      # ratchet gate, mirroring PRISM: measured 83% on 2026-11-06, so 80%
       # leaves refactor slack while still catching coverage regressions
-      - run: cd backend && python -m pytest tests -q --cov=app --cov-fail-under=75
+      - run: cd backend && python -m pytest tests -q --cov=app --cov-fail-under=80
       - run: ruff check backend/ --select F
       - run: python -m compileall backend/app
       - run: pip install pip-audit
