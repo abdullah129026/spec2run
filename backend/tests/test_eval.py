@@ -127,6 +127,29 @@ def test_smoke_test_records_failure_not_crash_on_dict_body(monkeypatch):
     assert any("missing the created row" in f for f in failures)
 
 
+def test_smoke_test_records_failure_not_crash_on_auth_spec_with_no_entities(monkeypatch):
+    """An auth spec with no schemas has no entities to protect: the 401
+    probe must record a failure, not crash on entities[0] and kill the
+    whole eval run."""
+    from app.services.codegen import render_service
+
+    spec = {
+        "openapi": "3.0.0",
+        "info": {"title": "Health only", "version": "1.0.0"},
+        "paths": {
+            "/health": {"get": {"responses": {"200": {"description": "ok"}}}},
+        },
+        "components": {
+            "securitySchemes": {"bearer": {"type": "http", "scheme": "bearer"}},
+        },
+    }
+    monkeypatch.setattr(
+        eval_svc.sandbox_svc, "proxy", _fake_proxy([{"id": 1}]))
+    failures = eval_svc.smoke_test(None, spec, render_service(spec, {"auth": True}))
+    assert failures
+    assert any("no entities" in f for f in failures)
+
+
 def test_smoke_test_records_failure_not_crash_on_non_json_body(monkeypatch):
     monkeypatch.setattr(
         eval_svc.sandbox_svc, "proxy", _fake_proxy(None, bad_json=True))

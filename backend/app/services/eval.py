@@ -143,10 +143,17 @@ def smoke_test(sb: sandbox_svc.Sandbox, spec: dict, rendered: dict) -> list[str]
         check(token, "POST /auth/login did not return an access_token")
         if token:
             headers = {"authorization": f"Bearer {token}"}
-        r = call("GET", f"/{rendered['entities'][0]['plural']}")
-        check(r is not None and r.status_code == 401,
-              "protected route without token should be 401, "
-              f"got {r.status_code if r else 'no response'}")
+        if rendered["entities"]:
+            r = call("GET", f"/{rendered['entities'][0]['plural']}")
+            check(r is not None and r.status_code == 401,
+                  "protected route without token should be 401, "
+                  f"got {r.status_code if r else 'no response'}")
+        else:
+            # An auth spec with no schemas has no route to probe: record
+            # the failure instead of crashing on entities[0] and killing
+            # the whole eval run.
+            failures.append(
+                "auth requested but service has no entities to protect")
 
     schemas = (spec.get("components") or {}).get("schemas") or {}
     created: dict[str, int] = {}  # plural -> id of a row we made
