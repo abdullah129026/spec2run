@@ -16,7 +16,9 @@ async function postJson(path: string, body: unknown): Promise<Record<string, unk
     const detail = await r.json().catch(() => ({}));
     const msg =
       typeof detail.detail === "string" ? detail.detail : `request failed: ${r.status}`;
-    throw new Error(msg);
+    // Keep the HTTP status in the message: friendlyError branches on 503
+    // and 422, and without it those branches could never fire.
+    throw new Error(`${r.status}: ${msg}`);
   }
   return r.json();
 }
