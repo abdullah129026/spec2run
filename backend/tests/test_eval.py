@@ -16,6 +16,17 @@ def test_load_corpus(tmp_path):
     assert [i["id"] for i in eval_svc.load_corpus(str(p))] == ["a", "b"]
 
 
+def test_load_fixtures_missing_dir_is_empty(tmp_path):
+    assert eval_svc.load_fixtures(str(tmp_path / "nope")) == {}
+
+
+def test_load_fixtures_reads_json_only(tmp_path):
+    (tmp_path / "a.json").write_text('{"openapi": "3.0.0"}')
+    (tmp_path / "b.json").write_text('{"openapi": "3.0.0"}')
+    (tmp_path / "notes.txt").write_text("not a fixture")
+    assert list(eval_svc.load_fixtures(str(tmp_path))) == ["a", "b"]
+
+
 def test_spec_match_ok():
     rendered = {"entities": [{"plural": "books"}], "auth": True}
     assert eval_svc.spec_match_problems(
@@ -28,6 +39,16 @@ def test_spec_match_flags_missing_entity_and_auth():
         {}, rendered, {"entities": ["books", "orders"], "auth": True})
     assert any("orders" in p for p in problems)
     assert any("auth mismatch" in p for p in problems)
+
+
+def test_spec_match_needs_clarification_short_circuits():
+    """A prompt that asked for clarification has nothing to match against:
+    missing entities and auth are not problems."""
+    rendered = {"entities": [], "auth": False}
+    assert eval_svc.spec_match_problems(
+        {}, rendered,
+        {"entities": ["orders"], "auth": True,
+         "needs_clarification": True}) == []
 
 
 def test_order_by_fk_parents_first():
@@ -43,6 +64,28 @@ def test_sample_values():
     assert eval_svc._sample_value({"type": "integer"}) == 1
     assert eval_svc._sample_value(
         {"type": "string", "format": "date-time"}) == "2026-01-01T00:00:00Z"
+
+
+def test_run_eval_skips_without_fixtures_or_llm(tmp_path):
+    corpus = tmp_path / "c.jsonl"
+    corpus.write_text(
+        '{"id": "a", "prompt": "p"}\n{"id": "b", "prompt": "p"}\n')
+    result = eval_svc.run_eval(str(corpus))
+    assert result["mode"] == "fixtures"
+    assert result["total"] == 2
+    assert result["passed"] == 0
+    assert result["failed"] == 0
+    assert result["skipped"] == 2
+    assert all(i["result"] == "skipped" for i in result["items"])
+
+
+def test_run_eval_honours_only_filter(tmp_path):
+    corpus = tmp_path / "c.jsonl"
+    corpus.write_text(
+        '{"id": "a", "prompt": "p"}\n{"id": "b", "prompt": "p"}\n')
+    result = eval_svc.run_eval(str(corpus), only=["b"])
+    assert result["total"] == 1
+    assert result["items"][0]["id"] == "b"
 
 
 def test_run_one_skipped_without_fixture_or_llm():
@@ -173,3 +216,24 @@ def test_write_report(tmp_path):
     text = out.read_text()
     assert "| a | passed" in text and "| b | failed" in text
     assert "### b" in text and "boot: nope" in text
+
+
+def test_write_report_fixtures_mode_lists_skipped(tmp_path):
+    """Fixtures mode must say the LLM stage was not measured and name
+    the skipped prompts, or the report reads as a full run."""
+    out = tmp_path / "EVAL.md"
+    eval_svc.write_report({
+        "ran_at": "2026-10-12", "mode": "fixtures", "total": 2,
+        "passed": 0, "failed": 0, "skipped": 2, "spec_match_issues": 0,
+        "items": [
+            {"id": "a", "result": "skipped", "stages": {},
+             "spec_match": [], "failures": ["no fixture; needs key"], "ms": 0},
+            {"id": "b", "result": "skipped", "stages": {},
+             "spec_match": [], "failures": ["no fixture; needs key"], "ms": 0},
+        ],
+    }, str(out))
+    text = out.read_text()
+    assert "LLM generation stage was not measured" in text
+    assert "## Not measured" in text
+    assert "`a`" in text and "`b`" in text
+    assert "None. Every measured prompt" in text
