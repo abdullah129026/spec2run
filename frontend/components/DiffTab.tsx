@@ -27,6 +27,11 @@ function DiffLine({ line }: { line: string }) {
   else if (line.startsWith("@@")) cls = "text-indigo-300";
   else if (line.startsWith("+")) cls = "bg-emerald-500/10 text-emerald-300";
   else if (line.startsWith("-")) cls = "bg-red-500/10 text-red-300";
+  // Header lines are shown in full: stripping their marker turned
+  // "+++ b/app.py" into "++ b/app.py". Only content lines drop the
+  // +/- marker, which the gutter already shows.
+  const isHeader =
+    line.startsWith("+++") || line.startsWith("---") || line.startsWith("@@");
   return (
     <div className={`whitespace-pre px-4 ${cls}`}>
       <span className="select-none opacity-40">
@@ -36,7 +41,7 @@ function DiffLine({ line }: { line: string }) {
             ? "−"
             : " "}
       </span>{" "}
-      {line.replace(/^[+-]/, "")}
+      {isHeader ? line : line.replace(/^[+-]/, "")}
     </div>
   );
 }
