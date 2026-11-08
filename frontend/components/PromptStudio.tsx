@@ -130,6 +130,14 @@ export default function PromptStudio() {
     }
   }
 
+  function retry() {
+    // The error panel is shared by generation and clarification rounds.
+    // Retrying a failed clarification must resend the answers; calling
+    // generate() here would discard them and ask the same questions again.
+    if (questions.length > 0) void sendAnswers();
+    else void generate();
+  }
+
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-5">
       <div className="flex items-center justify-between">
@@ -242,7 +250,7 @@ export default function PromptStudio() {
           <p className="text-xs leading-relaxed text-red-400">{error}</p>
           <button
             type="button"
-            onClick={generate}
+            onClick={retry}
             className="mt-2 text-xs font-medium text-red-300 underline underline-offset-2 hover:text-red-200"
           >
             Retry
