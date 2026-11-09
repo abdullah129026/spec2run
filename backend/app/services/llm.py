@@ -15,7 +15,12 @@ def _client() -> Groq:
 
 
 def complete_json(system: str, user: str) -> dict:
-    """Ask the model for a single JSON object; raises on invalid JSON."""
+    """Ask the model for a single JSON object; raises on invalid JSON.
+
+    A broken model reply is a ValueError, so the spec router maps it to a
+    422 with a plain message: invalid JSON used to surface the raw parser
+    error, and an empty choices list crashed with an uncaught IndexError.
+    """
     client = _client()
     resp = client.chat.completions.create(
         model=MODEL,
@@ -26,4 +31,10 @@ def complete_json(system: str, user: str) -> dict:
         response_format={"type": "json_object"},
         temperature=0.2,
     )
-    return json.loads(resp.choices[0].message.content or "{}")
+    if not resp.choices:
+        raise ValueError("model returned no completion")
+    content = resp.choices[0].message.content or "{}"
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        raise ValueError("model returned invalid JSON")
