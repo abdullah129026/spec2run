@@ -9,13 +9,11 @@ import SwaggerTab from "./SwaggerTab";
 const TAB_EXAMPLES: Record<string, string> = {
   Swagger: "Create an API for a bookstore with books, authors, and orders.",
   Code: "A todo API with lists and items. Items have a title and a done flag.",
-  Logs: "A blog API with posts and comments. Posts have title, body, and tags.",
 };
 
 const TAB_NOTES: Record<string, string> = {
   Swagger: "The live API reference will appear here.",
   Code: "Editable generated code lands here — files, diffs, ZIP and GitHub push.",
-  Logs: "Staged build logs stream in with the week-3 sandbox.",
 };
 
 export default function GenerationPanel() {
@@ -26,7 +24,10 @@ export default function GenerationPanel() {
   const setPrompt = useSpec2RunStore((s) => s.setPrompt);
   const versions = useSpec2RunStore((s) => s.versions);
 
-  const tabs = ["Swagger", "Code", "Logs"];
+  // No Logs tab: nothing boots a sandbox from the frontend yet, so the
+  // tab rendered a blank panel once a spec existed. It comes back when
+  // sandbox logs are actually wired up.
+  const tabs = ["Swagger", "Code"];
   if (versions.length > 1) tabs.push("Diff");
   if (!tabs.includes(tab)) setTab("Swagger");
 
