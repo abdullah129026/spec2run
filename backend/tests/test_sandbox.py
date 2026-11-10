@@ -2,6 +2,9 @@
 subprocess on loopback); only the pip-install step is faked, because the
 test service is a stdlib-only ASGI app and the venv already has uvicorn.
 """
+import hashlib
+import os
+import subprocess
 import sys
 
 import pytest
@@ -85,3 +88,62 @@ def test_pool_evicts_oldest(fast_boot, monkeypatch):
     second = sandbox.boot({"app.py": TINY_APP, "requirements.txt": ""})
     assert sandbox.get(first.id) is None  # evicted
     assert sandbox.get(second.id) is second
+
+
+def _fake_subprocess_run(monkeypatch, pip_returncode=0, pip_stderr=""):
+    """Fake subprocess.run: venv creation materializes a bin/python, pip
+    install answers with the given return code."""
+    calls = []
+
+    def _run(cmd, **kwargs):
+        calls.append(cmd)
+        if "-m" in cmd and "venv" in cmd:
+            bin_dir = os.path.join(cmd[-1], "bin")
+            os.makedirs(bin_dir, exist_ok=True)
+            open(os.path.join(bin_dir, "python"), "w").close()
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+        return subprocess.CompletedProcess(cmd, pip_returncode,
+                                           stdout="", stderr=pip_stderr)
+
+    monkeypatch.setattr(sandbox.subprocess, "run", _run)
+    return calls
+
+
+def test_venv_python_reuses_matching_venv(monkeypatch, tmp_path):
+    # Same requirements as the recorded hash: no venv rebuild, no pip run.
+    venv = tmp_path / "venv"
+    (venv / "bin").mkdir(parents=True)
+    (venv / "bin" / "python").write_text("")
+    want = hashlib.sha256(b"uvicorn==1.0").hexdigest()
+    (venv / ".spec2run-req-sha").write_text(want)
+    monkeypatch.setenv("SANDBOX_VENV", str(venv))
+    calls = _fake_subprocess_run(monkeypatch)
+    assert sandbox._venv_python("uvicorn==1.0") == str(venv / "bin" / "python")
+    assert calls == []
+
+
+def test_venv_python_rebuilds_on_stale_sha(monkeypatch, tmp_path):
+    venv = tmp_path / "venv"
+    (venv / "bin").mkdir(parents=True)
+    (venv / "bin" / "python").write_text("")
+    (venv / ".spec2run-req-sha").write_text("stale")
+    monkeypatch.setenv("SANDBOX_VENV", str(venv))
+    calls = _fake_subprocess_run(monkeypatch)
+    assert sandbox._venv_python("uvicorn==2.0") == str(venv / "bin" / "python")
+    assert (venv / ".spec2run-req-sha").read_text() == hashlib.sha256(
+        b"uvicorn==2.0").hexdigest()
+    assert any(cmd[:3] == [sys.executable, "-m", "venv"] for cmd in calls)
+    assert any("pip" in cmd for cmd in calls)
+
+
+def test_venv_python_pip_failure_raises_and_cleans_up(monkeypatch, tmp_path):
+    # A venv whose dependencies cannot install must not linger half-built:
+    # the next boot starts from a clean slate instead of a broken venv.
+    venv = tmp_path / "venv"
+    monkeypatch.setenv("SANDBOX_VENV", str(venv))
+    _fake_subprocess_run(monkeypatch, pip_returncode=1,
+                         pip_stderr="ERROR: could not find a version\n"
+                         "  for badpkg==9.9.9\n")
+    with pytest.raises(sandbox.SandboxError, match="could not install"):
+        sandbox._venv_python("badpkg==9.9.9")
+    assert not venv.exists()
