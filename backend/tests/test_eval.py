@@ -1,6 +1,8 @@
 """Eval harness pure logic. The boot-and-smoke path is exercised by the
 runner itself (docs/EVAL.md), not faked here."""
 
+from types import SimpleNamespace
+
 import pytest
 
 from app.services import eval as eval_svc
@@ -237,3 +239,115 @@ def test_write_report_fixtures_mode_lists_skipped(tmp_path):
     assert "## Not measured" in text
     assert "`a`" in text and "`b`" in text
     assert "None. Every measured prompt" in text
+
+
+def _entry(pid="x"):
+    return {"id": pid, "prompt": "build a bookstore", "expect": {}}
+
+
+def _valid_spec():
+    return {"openapi": "3.0.0",
+            "info": {"title": "T", "version": "1"},
+            "paths": {"/health": {"get": {"responses": {"200": {"description": "ok"}}}}}}
+
+
+def _fake_rendered(monkeypatch):
+    """Skip validate/render so the test exercises the stage after them."""
+    monkeypatch.setattr(eval_svc, "validate_openapi", lambda spec: [])
+    monkeypatch.setattr(
+        eval_svc, "render_service",
+        lambda spec, opts: {"files": {"app.py": "x"}, "entities": [],
+                            "auth": False})
+
+
+def test_run_one_validate_failure():
+    # A fixture that fails structural validation is a measured failure, not
+    # a crash: the stage is named and the run can continue to the next item.
+    item = eval_svc._run_one(_entry(), {"openapi": "3.0.0"}, None, "auto")
+    assert item["result"] == "failed"
+    assert item["stages"]["validate"] == "failed"
+    assert any(f.startswith("validate:") for f in item["failures"])
+
+
+def test_run_one_render_failure(monkeypatch):
+    monkeypatch.setattr(eval_svc, "validate_openapi", lambda spec: [])
+
+    def _boom(spec, opts):
+        raise ValueError("bad template")
+
+    monkeypatch.setattr(eval_svc, "render_service", _boom)
+    item = eval_svc._run_one(_entry(), _valid_spec(), None, "auto")
+    assert item["result"] == "failed"
+    assert item["stages"]["render"] == "failed"
+    assert any(f.startswith("render:") for f in item["failures"])
+
+
+def test_run_one_boot_failure(monkeypatch):
+    _fake_rendered(monkeypatch)
+
+    def _boom(files, database="auto"):
+        raise eval_svc.sandbox_svc.SandboxError("no docker")
+
+    monkeypatch.setattr(eval_svc.sandbox_svc, "boot", _boom)
+    item = eval_svc._run_one(_entry(), _valid_spec(), None, "auto")
+    assert item["result"] == "failed"
+    assert item["stages"]["boot"] == "failed"
+    assert any(f.startswith("boot:") for f in item["failures"])
+
+
+def test_run_one_smoke_failure(monkeypatch):
+    _fake_rendered(monkeypatch)
+    monkeypatch.setattr(
+        eval_svc.sandbox_svc, "boot",
+        lambda files, database="auto": SimpleNamespace(id="0" * 32))
+    monkeypatch.setattr(eval_svc.sandbox_svc, "kill", lambda sid: True)
+    monkeypatch.setattr(
+        eval_svc, "smoke_test",
+        lambda sb, spec, rendered: ["GET /books: 500"])
+    item = eval_svc._run_one(_entry(), _valid_spec(), None, "auto")
+    assert item["result"] == "failed"
+    assert item["stages"]["smoke"] == "failed"
+    assert item["failures"] == ["smoke: GET /books: 500"]
+
+
+def test_run_one_passes_when_every_stage_ok(monkeypatch):
+    _fake_rendered(monkeypatch)
+    monkeypatch.setattr(
+        eval_svc.sandbox_svc, "boot",
+        lambda files, database="auto": SimpleNamespace(id="0" * 32))
+    killed = []
+    monkeypatch.setattr(eval_svc.sandbox_svc, "kill",
+                        lambda sid: killed.append(sid))
+    monkeypatch.setattr(eval_svc, "smoke_test",
+                        lambda sb, spec, rendered: [])
+    item = eval_svc._run_one(_entry(), _valid_spec(), None, "auto")
+    assert item["result"] == "passed"
+    assert item["stages"] == {"spec": "ok", "validate": "ok", "render": "ok",
+                              "boot": "ok", "smoke": "ok"}
+    assert item["spec_match"] == []
+    assert killed == ["0" * 32]  # the sandbox is always torn down
+
+
+def test_main_returns_one_when_prompts_failed(monkeypatch):
+    calls = {}
+
+    def _fake_run(corpus, fixtures, only=None, database="auto"):
+        calls["only"] = only
+        return {"passed": 0, "failed": 1, "skipped": 0}
+
+    monkeypatch.setattr(eval_svc, "run_eval", _fake_run)
+    monkeypatch.setattr(eval_svc, "write_report",
+                        lambda result, path: calls.setdefault("report", path))
+    assert eval_svc.main(["--corpus", "c.jsonl", "--fixtures", "fx",
+                          "--out", "out.md", "--only", "a, b"]) == 1
+    assert calls["only"] == ["a", "b"]
+    assert calls["report"] == "out.md"
+
+
+def test_main_returns_zero_when_nothing_failed(monkeypatch):
+    monkeypatch.setattr(
+        eval_svc, "run_eval",
+        lambda corpus, fixtures, only=None, database="auto": {
+            "passed": 2, "failed": 0, "skipped": 0})
+    monkeypatch.setattr(eval_svc, "write_report", lambda result, path: None)
+    assert eval_svc.main(["--corpus", "c.jsonl"]) == 0
