@@ -75,6 +75,32 @@ def test_create_branch_http_error(monkeypatch, env):
         neon.create_branch("b")
 
 
+def test_create_branch_unreadable_body_raises_neon_error(monkeypatch, env):
+    """A 200 with a non-JSON body must be a NeonError (clean SandboxError
+    upstream), not a raw JSONDecodeError escaping as a 500."""
+
+    class BadJsonResponse(FakeResponse):
+        def json(self):
+            raise ValueError("not JSON")
+
+    monkeypatch.setattr(
+        neon.httpx, "request", _fake_request([], BadJsonResponse(200))
+    )
+    with pytest.raises(neon.NeonError, match="unreadable response"):
+        neon.create_branch("b")
+
+
+def test_create_branch_transport_error_raises_neon_error(monkeypatch, env):
+    def _boom(*args, **kwargs):
+        import httpx
+
+        raise httpx.HTTPError("connection refused")
+
+    monkeypatch.setattr(neon.httpx, "request", _boom)
+    with pytest.raises(neon.NeonError, match="unreachable"):
+        neon.create_branch("b")
+
+
 def test_create_branch_no_uri_cleans_up(monkeypatch, env):
     calls = []
     payload = {"branch": {"id": "br-3"}, "connection_uris": []}

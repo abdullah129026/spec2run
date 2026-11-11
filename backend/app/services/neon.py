@@ -37,7 +37,12 @@ def _call(method: str, path: str, payload: dict | None = None) -> dict:
         raise NeonError(f"Neon API unreachable: {e}")
     if r.status_code >= 400:
         raise NeonError(f"Neon API returned HTTP {r.status_code}")
-    return r.json()
+    try:
+        return r.json()
+    except ValueError:
+        # A 200 with an empty or non-JSON body must surface as a NeonError
+        # (caught by the sandbox boot path) rather than escaping as a 500.
+        raise NeonError("Neon API returned an unreadable response")
 
 
 def create_branch(name: str) -> dict:
