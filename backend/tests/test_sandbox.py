@@ -56,7 +56,7 @@ def test_child_env_scrubs_secrets(monkeypatch):
 
 
 def test_boot_rejects_bad_input(fast_boot):
-    with pytest.raises(sandbox.SandboxError, match="no app.py"):
+    with pytest.raises(sandbox.SandboxError, match=r"no app\.py"):
         sandbox.boot({"requirements.txt": ""})
     with pytest.raises(sandbox.SandboxError, match="unsafe path"):
         sandbox.boot({"app.py": "x", "../evil.py": "x"})
@@ -147,3 +147,139 @@ def test_venv_python_pip_failure_raises_and_cleans_up(monkeypatch, tmp_path):
     with pytest.raises(sandbox.SandboxError, match="could not install"):
         sandbox._venv_python("badpkg==9.9.9")
     assert not venv.exists()
+
+
+class _FakeProc:
+    """Minimal stand-in for subprocess.Popen: only poll()/returncode."""
+
+    def __init__(self, exit_code=None):
+        self._exit_code = exit_code
+        self.returncode = exit_code
+
+    def poll(self):
+        return self._exit_code
+
+
+def _fake_sandbox(exit_code=None):
+    return sandbox.Sandbox(
+        id="a" * 32, dir="/tmp/fake-box", port=18080,
+        process=_FakeProc(exit_code), database="sqlite",
+        branch_id=None, expires_at=9999999999.0,
+    )
+
+
+def test_proxy_rejects_exited_sandbox():
+    """Proxying to a child that already died must fail cleanly instead
+    of dialing a dead port."""
+    sb = _fake_sandbox(exit_code=1)
+    with pytest.raises(sandbox.SandboxError, match="has exited"):
+        sandbox.proxy(sb, "GET", "health", "", {}, b"")
+
+
+def test_proxy_wraps_unreachable_child(monkeypatch):
+    """A loopback dial failure (child hung, port gone) becomes a
+    SandboxError, not a raw httpx error."""
+    import httpx
+
+    sb = _fake_sandbox()
+
+    def _boom(*args, **kwargs):
+        raise httpx.ConnectError("refused", request=None)
+
+    monkeypatch.setattr(sandbox._loopback, "request", _boom)
+    with pytest.raises(sandbox.SandboxError, match="sandbox unreachable"):
+        sandbox.proxy(sb, "GET", "health", "", {}, b"")
+
+
+def test_proxy_rejects_oversize_response(monkeypatch):
+    """A child answering with more than 10 MB must be rejected, not
+    buffered into the API response."""
+
+    class _BigResponse:
+        content = b"x" * (sandbox.MAX_PROXY_BYTES + 1)
+
+    monkeypatch.setattr(
+        sandbox._loopback, "request",
+        lambda *args, **kwargs: _BigResponse())
+    sb = _fake_sandbox()
+    with pytest.raises(sandbox.SandboxError, match="exceeded 10 MB"):
+        sandbox.proxy(sb, "GET", "health", "", {}, b"")
+
+
+def test_read_tail_missing_file_returns_empty():
+    assert sandbox._read_tail("/nonexistent/sandbox.log", 5) == []
+
+
+def test_wait_healthy_child_exited_raises():
+    proc = _FakeProc(exit_code=3)
+    with pytest.raises(sandbox.SandboxError,
+                       match="exited during boot"):
+        sandbox._wait_healthy(18080, proc)
+
+
+def test_wait_healthy_timeout_raises(monkeypatch):
+    """No /health answer before the deadline is a boot failure, not a
+    hang: the deadline (not the loop) decides."""
+    monkeypatch.setattr(sandbox, "BOOT_TIMEOUT", 0)
+    proc = _FakeProc()
+    with pytest.raises(sandbox.SandboxError,
+                       match="did not answer /health"):
+        sandbox._wait_healthy(18080, proc)
+
+
+class _RecordingProc:
+    """Fake Popen that records which signals it received."""
+
+    def __init__(self, exit_code=None):
+        self._exit = exit_code
+        self.returncode = exit_code
+        self.terminated = False
+        self.killed = False
+        self.waited = False
+
+    def poll(self):
+        return self._exit
+
+    def terminate(self):
+        self.terminated = True
+        self._exit = 0
+        self.returncode = 0
+
+    def kill(self):
+        self.killed = True
+        self._exit = -9
+        self.returncode = -9
+
+    def wait(self, timeout=None):
+        self.waited = True
+        return self.returncode
+
+
+def _registered_fake(exit_code=None, tmp_path=None):
+    proc = _RecordingProc(exit_code)
+    box = tmp_path / "box"
+    box.mkdir()
+    sb = sandbox.Sandbox(
+        id="b" * 32, dir=str(box), port=18081, process=proc,
+        database="sqlite", branch_id=None, expires_at=9999999999.0,
+    )
+    sandbox.REGISTRY[sb.id] = sb
+    return sb, proc
+
+
+def test_kill_never_signals_an_already_exited_child(tmp_path):
+    """A child reaped by an earlier poll() may have had its pid reused:
+    kill must not signal it."""
+    sb, proc = _registered_fake(exit_code=1, tmp_path=tmp_path)
+    assert sandbox.kill(sb.id) is True
+    assert proc.terminated is False
+    assert proc.killed is False
+    assert proc.waited is True
+
+
+def test_kill_terminates_a_live_child(tmp_path):
+    sb, proc = _registered_fake(exit_code=None, tmp_path=tmp_path)
+    assert sandbox.kill(sb.id) is True
+    assert proc.terminated is True
+    assert proc.killed is False
+    assert proc.waited is True

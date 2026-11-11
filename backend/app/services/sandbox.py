@@ -193,12 +193,16 @@ def _kill_locked(sandbox_id: str) -> bool:
     if sb is None:
         return False
     try:
-        sb.process.terminate()
-        sb.process.wait(timeout=5)
+        if sb.process.poll() is None:
+            sb.process.terminate()
+            sb.process.wait(timeout=5)
     except (OSError, subprocess.TimeoutExpired):
         # Already dead or refused to stop: force-kill so the registry
-        # never leaks a zombie sandbox.
-        sb.process.kill()
+        # never leaks a zombie sandbox. Re-check poll() first: a pid
+        # reaped by an earlier poll() may already belong to someone else.
+        if sb.process.poll() is None:
+            sb.process.kill()
+    sb.process.wait()
     if sb.branch_id:
         try:
             neon.delete_branch(sb.branch_id)
@@ -280,7 +284,11 @@ def boot(files: dict[str, str], database: str = "auto") -> Sandbox:
                 _wait_healthy(port, proc)
                 break
             except SandboxError:
-                proc.kill()
+                # _wait_healthy reaps an exited child via poll(): only
+                # signal a pid that is still alive, or the signal could
+                # land on whatever reused the pid meanwhile.
+                if proc.poll() is None:
+                    proc.kill()
                 proc.wait()
                 proc = None
                 tail = "\n".join(_read_tail(log, 20)).lower()
