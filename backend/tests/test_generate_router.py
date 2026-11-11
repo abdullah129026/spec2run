@@ -242,3 +242,118 @@ def test_gh_surfaces_per_error_messages(monkeypatch):
         generate._gh("tok", "POST", "/user/repos", {"name": "demo"})
     assert exc.value.status_code == 502
     assert "already exists" in exc.value.detail
+
+
+def test_generate_rejects_oversize_spec():
+    """A spec past 2 MB is abuse, not an API call: 413 before rendering."""
+    big = {"openapi": "3.0.0", "pad": "x" * (2 * 1024 * 1024)}
+    r = client.post("/generate/code", json={"spec": big})
+    assert r.status_code == 413
+    assert "exceeds 2 MB" in r.json()["detail"]
+
+
+def test_generate_template_error_is_500(monkeypatch):
+    """A template bug (RuntimeError from render) is a 500, never a 422:
+    the user's spec was fine."""
+
+    def boom(spec, options):
+        raise RuntimeError("template boom")
+
+    monkeypatch.setattr(generate, "render_service", boom)
+    r = client.post("/generate/code", json={"spec": BOOKSTORE})
+    assert r.status_code == 500
+    assert "template boom" in r.json()["detail"]
+
+
+def test_gh_transport_error_is_502(monkeypatch):
+    import httpx
+    from fastapi import HTTPException
+
+    def boom(*a, **k):
+        raise httpx.HTTPError("connection refused")
+
+    monkeypatch.setattr(generate.httpx, "request", boom)
+    with pytest.raises(HTTPException) as exc:
+        generate._gh("tok", "GET", "/user")
+    assert exc.value.status_code == 502
+    assert "GitHub unreachable" in exc.value.detail
+
+
+def test_gh_non_json_error_body_is_generic_502(monkeypatch):
+    """GitHub returning a 500 with a non-JSON body must still be a clean
+    502 with the generic detail, not a JSONDecodeError."""
+    from fastapi import HTTPException
+
+    class HtmlError:
+        status_code = 500
+        content = b"<html>bad gateway</html>"
+
+        def json(self):
+            raise ValueError("not JSON")
+
+    monkeypatch.setattr(
+        generate.httpx, "request", lambda *a, **k: HtmlError()
+    )
+    with pytest.raises(HTTPException) as exc:
+        generate._gh("tok", "GET", "/user")
+    assert exc.value.status_code == 502
+    assert exc.value.detail == "GitHub rejected the request"
+
+
+def test_gh_auth_error_hints_at_token_scope(monkeypatch):
+    """A 401/403 from GitHub should tell the user to check the token and
+    its repo scope, not just repeat the API message."""
+    from fastapi import HTTPException
+
+    class Unauthorized:
+        status_code = 401
+        content = b'{"message":"Bad credentials"}'
+
+        def json(self):
+            return {"message": "Bad credentials"}
+
+    monkeypatch.setattr(
+        generate.httpx, "request", lambda *a, **k: Unauthorized()
+    )
+    with pytest.raises(HTTPException) as exc:
+        generate._gh("tok", "GET", "/user")
+    assert exc.value.status_code == 502
+    assert "Bad credentials" in exc.value.detail
+    assert "check the token and its repo scope" in exc.value.detail
+
+
+def test_github_push_user_without_login_is_502(monkeypatch):
+    def fake(token, method, path, payload=None):
+        if path == "/user":
+            return {}  # no login field
+        raise AssertionError(f"unexpected {method} {path}")
+
+    monkeypatch.setattr(generate, "_gh", fake)
+    r = client.post(
+        "/generate/github",
+        json={"spec": BOOKSTORE, "token": "ghp_fake", "repo": "demo"},
+    )
+    assert r.status_code == 502
+    assert "could not read user" in r.json()["detail"]
+
+
+def test_github_push_non_conflict_error_reraised(monkeypatch):
+    """Only a name-conflict 502 falls back to pushing onto the existing
+    repo; any other GitHub failure must surface as-is."""
+    from fastapi import HTTPException
+
+    def fake(token, method, path, payload=None):
+        if path == "/user":
+            return {"login": "ada"}
+        if method == "POST" and path == "/user/repos":
+            raise HTTPException(
+                status_code=502, detail="GitHub: rate limit exceeded")
+        raise AssertionError(f"unexpected {method} {path}")
+
+    monkeypatch.setattr(generate, "_gh", fake)
+    r = client.post(
+        "/generate/github",
+        json={"spec": BOOKSTORE, "token": "ghp_fake", "repo": "demo"},
+    )
+    assert r.status_code == 502
+    assert "rate limit exceeded" in r.json()["detail"]
