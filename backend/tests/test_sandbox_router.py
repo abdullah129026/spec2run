@@ -104,3 +104,30 @@ def test_proxy_forwards(monkeypatch):
 
 def test_proxy_unknown_sandbox():
     assert client.get("/sandbox/" + "c" * 32 + "/proxy/health").status_code == 404
+
+
+def test_proxy_rejects_oversized_body(monkeypatch):
+    box = _box()
+    monkeypatch.setattr(sandbox_svc, "get", lambda sid: box)
+    called = []
+    monkeypatch.setattr(
+        sandbox_svc, "proxy", lambda *a, **k: called.append(True))
+    r = client.post(
+        f"/sandbox/{box.id}/proxy/books", content=b"x" * (10 * 1024 * 1024 + 1)
+    )
+    assert r.status_code == 413
+    assert "10 MB" in r.json()["detail"]
+    assert called == [], "oversized body must never reach the sandbox"
+
+
+def test_proxy_sandbox_error_is_502(monkeypatch):
+    box = _box()
+    monkeypatch.setattr(sandbox_svc, "get", lambda sid: box)
+
+    def boom(*args, **kwargs):
+        raise sandbox_svc.SandboxError("connection refused")
+
+    monkeypatch.setattr(sandbox_svc, "proxy", boom)
+    r = client.post(f"/sandbox/{box.id}/proxy/books", json={"title": "Dune"})
+    assert r.status_code == 502
+    assert "connection refused" in r.json()["detail"]
