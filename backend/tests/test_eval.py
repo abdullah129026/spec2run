@@ -351,3 +351,143 @@ def test_main_returns_zero_when_nothing_failed(monkeypatch):
             "passed": 2, "failed": 0, "skipped": 0})
     monkeypatch.setattr(eval_svc, "write_report", lambda result, path: None)
     assert eval_svc.main(["--corpus", "c.jsonl"]) == 0
+
+
+def test_smoke_test_records_failure_when_proxy_raises(monkeypatch):
+    """A dead sandbox proxy is a recorded smoke failure, not a crash:
+    the health call returns None and the run stops there."""
+
+    def boom(*args, **kwargs):
+        raise eval_svc.sandbox_svc.SandboxError("connection refused")
+
+    monkeypatch.setattr(eval_svc.sandbox_svc, "proxy", boom)
+    failures = eval_svc.smoke_test(None, BOOKSTORE, _rendered_bookstore())
+    assert failures == ["GET /health: proxy failed: connection refused"]
+
+
+def test_smoke_test_records_failure_when_login_returns_no_token(monkeypatch):
+    """A login that answers 200 without an access_token fails the smoke
+    test (and the unprotected-entity probe still runs with no token)."""
+    from app.services.codegen import render_service
+
+    def proxy(sb, method, path, query, headers, body):
+        if method == "GET" and path == "health":
+            return _FakeResp(200, {})
+        if method == "POST" and path == "auth/register":
+            return _FakeResp(201, {})
+        if method == "POST" and path == "auth/login":
+            return _FakeResp(200, {"token_type": "bearer"})
+        if method == "GET" and path in ("books", "authors"):
+            if "authorization" not in headers:
+                return _FakeResp(401, {})
+            return _FakeResp(200, [{"id": 1}])
+        if method == "POST":
+            return _FakeResp(201, {"id": 1})
+        if method == "GET" and path.endswith("/1"):
+            return _FakeResp(404, {})
+        if method == "PUT":
+            return _FakeResp(200, {"id": 1})
+        if method == "DELETE":
+            return _FakeResp(204, None)
+        raise AssertionError(f"unexpected {method} {path}")
+
+    monkeypatch.setattr(eval_svc.sandbox_svc, "proxy", proxy)
+    failures = eval_svc.smoke_test(
+        None, BOOKSTORE, render_service(BOOKSTORE, {"auth": True}))
+    assert "POST /auth/login did not return an access_token" in failures
+
+
+def test_smoke_test_records_failure_when_create_returns_no_id(monkeypatch):
+    """A create that answers 201 without an id fails that entity's smoke
+    check and moves on to the next entity instead of crashing."""
+
+    def proxy(sb, method, path, query, headers, body):
+        if method == "GET" and path == "health":
+            return _FakeResp(200, {})
+        if method == "POST":
+            return _FakeResp(201, {})
+        raise AssertionError(f"unexpected {method} {path}")
+
+    monkeypatch.setattr(eval_svc.sandbox_svc, "proxy", proxy)
+    failures = eval_svc.smoke_test(None, BOOKSTORE, _rendered_bookstore())
+    assert "POST /books returned no id" in failures
+    assert "POST /authors returned no id" in failures
+
+
+def test_smoke_test_records_failure_when_create_returns_error(monkeypatch):
+    """A create that answers 500 (or a proxy that dies mid-run) fails that
+    entity's smoke check with the status, not a crash."""
+
+    def proxy(sb, method, path, query, headers, body):
+        if method == "GET" and path == "health":
+            return _FakeResp(200, {})
+        if method == "POST":
+            return _FakeResp(500, {})
+        raise AssertionError(f"unexpected {method} {path}")
+
+    monkeypatch.setattr(eval_svc.sandbox_svc, "proxy", proxy)
+    failures = eval_svc.smoke_test(None, BOOKSTORE, _rendered_bookstore())
+    assert "POST /books -> 500" in failures
+    assert "POST /authors -> 500" in failures
+
+
+def test_smoke_test_passes_with_valid_login_token(monkeypatch):
+    """The happy auth path: login returns a token, the token is attached,
+    and the protected-entity probe sees 401 without it."""
+    from app.services.codegen import render_service
+
+    deleted = set()
+
+    def proxy(sb, method, path, query, headers, body):
+        if method == "GET" and path == "health":
+            return _FakeResp(200, {})
+        if method == "POST" and path == "auth/register":
+            return _FakeResp(201, {})
+        if method == "POST" and path == "auth/login":
+            return _FakeResp(200, {"access_token": "tok123"})
+        if method == "GET" and path in ("books", "authors"):
+            if "authorization" not in headers:
+                return _FakeResp(401, {})
+            return _FakeResp(200, [{"id": 1}])
+        if method == "POST":
+            return _FakeResp(201, {"id": 1})
+        if method == "GET" and path.endswith("/1"):
+            return _FakeResp(404 if path in deleted else 200, {"id": 1})
+        if method == "PUT":
+            return _FakeResp(200, {"id": 1})
+        if method == "DELETE":
+            deleted.add(path)
+            return _FakeResp(204, None)
+        raise AssertionError(f"unexpected {method} {path}")
+
+    monkeypatch.setattr(eval_svc.sandbox_svc, "proxy", proxy)
+    failures = eval_svc.smoke_test(
+        None, BOOKSTORE, render_service(BOOKSTORE, {"auth": True}))
+    assert failures == []
+
+
+def test_run_one_spec_stage_exception_is_measured_failure():
+    """An LLM outage during spec generation is a measured failure of the
+    spec stage, not a crash of the eval run."""
+
+    def boom(prompt, expect):
+        raise RuntimeError("LLM timeout")
+
+    item = eval_svc._run_one(
+        {"id": "x", "prompt": "p", "expect": {}}, None, boom, "auto")
+    assert item["result"] == "failed"
+    assert item["stages"]["spec"] == "failed"
+    assert any("generate_spec raised" in f for f in item["failures"])
+
+
+def test_run_one_clarification_is_a_pass():
+    """A spec stage that answers 'needs clarification' passes when the
+    prompt expected clarification."""
+
+    def clarify(prompt, expect):
+        return {"needs_clarification": True, "question": "which database?"}
+
+    item = eval_svc._run_one(
+        {"id": "x", "prompt": "p", "expect": {"needs_clarification": True}},
+        None, clarify, "auto")
+    assert item["result"] == "passed"
