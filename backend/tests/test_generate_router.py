@@ -357,3 +357,19 @@ def test_github_push_non_conflict_error_reraised(monkeypatch):
     )
     assert r.status_code == 502
     assert "rate limit exceeded" in r.json()["detail"]
+
+
+def test_gh_empty_body_returns_empty_dict(monkeypatch):
+    """Some GitHub endpoints answer 204 with no body: _gh returns {} instead
+    of crashing on r.json()."""
+    class EmptyBody:
+        status_code = 200
+        content = b""
+
+        def json(self):
+            raise AssertionError("json() must not be called on an empty body")
+
+    monkeypatch.setattr(
+        generate.httpx, "request", lambda *a, **k: EmptyBody()
+    )
+    assert generate._gh("tok", "DELETE", "/repos/ada/demo") == {}
